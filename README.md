@@ -1,5 +1,7 @@
 # Local DPS for Aion 2
 
+[![Build and test](https://github.com/sccdmaomao/aion2-dps-tracker/actions/workflows/build.yml/badge.svg)](https://github.com/sccdmaomao/aion2-dps-tracker/actions/workflows/build.yml)
+
 A local-only Windows DPS meter for Aion 2. Passive packet capture, automatic
 game connection detection, and party filtering. No account, telemetry, automatic
 uploads, or AionFlex installation required.
@@ -93,8 +95,11 @@ $test = Start-Process ./src/LocalDps/bin/Release/net8.0-windows/LocalDps.exe `
 if ($test.ExitCode -ne 0) { throw 'Self-tests failed' }
 ```
 
-The build script creates a clean release ZIP and SHA-256 checksum. Maintainers
-publish these assets on the GitHub Releases page. Automated CI is not enabled yet.
+GitHub Actions builds, runs the offline self-tests, and packages the app on pushes
+to main and pull requests. It can also be run manually from the Actions tab. Each
+successful run provides a Windows ZIP and SHA-256 checksum as downloadable artifacts.
+No live game, Npcap installation, or repository secrets are needed. Maintainers
+publish release assets separately on the GitHub Releases page.
 
 ## Status and limits
 
