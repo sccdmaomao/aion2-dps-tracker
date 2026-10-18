@@ -13,6 +13,7 @@ public partial class MainWindow
     WindowPreferences windowPreferences=new();
     bool compactMode,windowPreferencesReady,persistWindowPreferences;
     double windowOpacity=1;
+    double compactOpacity=1;
     bool opacityUpdateQueued;
     bool synchronizingOpacity;
     sealed record OpacityChoice(int Percent,string Label);
@@ -24,7 +25,7 @@ public partial class MainWindow
         try{windowPreferences=(initial??(persist?WindowPreferences.Load():new())).Normalize();}
         catch(Exception ex){statusMessage="Window settings could not load: "+ex.Message;}
         Width=windowPreferences.Width;Height=windowPreferences.Height;
-        SetWindowOpacity(windowPreferences.Opacity*100);
+        compactOpacity=windowPreferences.Opacity;
         if(windowPreferences.Left is double left&&windowPreferences.Top is double top)
         {
             WindowStartupLocation=WindowStartupLocation.Manual;Left=left;Top=top;
@@ -45,11 +46,12 @@ public partial class MainWindow
     void CompactClick(object sender,RoutedEventArgs e)=>SetCompact(!compactMode);
     void SetCompact(bool compact)
     {
-        if(compactMode==compact){Topmost=compact;return;}
+        if(compactMode==compact){Topmost=compact;SetWindowOpacity(compact?compactOpacity*100:100);return;}
         if(windowPreferencesReady)CaptureWindowPreferences();
         if(WindowState!=WindowState.Normal)WindowState=WindowState.Normal;
         compactMode=compact;
         Topmost=compact;
+        SetWindowOpacity(compact?compactOpacity*100:100);
         NormalRoot.Visibility=compact?Visibility.Collapsed:Visibility.Visible;
         CompactRoot.Visibility=compact?Visibility.Visible:Visibility.Collapsed;
         WindowStyle=compact?WindowStyle.None:WindowStyle.SingleBorderWindow;
@@ -86,6 +88,7 @@ public partial class MainWindow
     void SetWindowOpacity(double percent)
     {
         windowOpacity=Math.Clamp(percent/100,.3,1);
+        if(compactMode)compactOpacity=windowOpacity;
         SynchronizeOpacityDropdown();
         ApplyWindowOpacity();
         ScheduleWindowPreferencesSave();
@@ -140,7 +143,7 @@ public partial class MainWindow
     void CaptureWindowPreferences()
     {
         Rect bounds=WindowState==WindowState.Normal?new(Left,Top,Width,Height):RestoreBounds;
-        windowPreferences=windowPreferences with {Compact=compactMode,AlwaysOnTop=Topmost,Opacity=windowOpacity,Left=bounds.Left,Top=bounds.Top};
+        windowPreferences=windowPreferences with {Compact=compactMode,AlwaysOnTop=Topmost,Opacity=compactOpacity,Left=bounds.Left,Top=bounds.Top};
         windowPreferences=compactMode?windowPreferences with {CompactWidth=bounds.Width,CompactHeight=bounds.Height}
             :windowPreferences with {Width=bounds.Width,Height=bounds.Height};
     }

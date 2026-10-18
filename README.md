@@ -64,7 +64,8 @@ Click the compact-view icon beside the capture/share controls. Compact mode pins
 itself above other desktop windows and keeps capturing the same party and targets.
 Drag the grip/DPS area to move it. Left-click the percentage dropdown in the
 header to select opacity (30–100%); compact view has no pin or right-click menu.
-The restore icon returns to the full window and turns always-on-top off. The
+The restore icon returns to the full window at 100% opacity and turns always-on-top off.
+Your compact opacity is remembered when you switch back. The
 target dropdown and capture/share controls work in both views.
 
 The full window has no settings/options menu. The copied chart stays opaque and

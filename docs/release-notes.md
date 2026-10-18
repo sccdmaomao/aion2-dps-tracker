@@ -1,14 +1,13 @@
-Local DPS Tracker 1.1.0 adds a compact combat view.
+Local DPS Tracker 1.1.1 makes switching views more predictable.
 
-- A small, resizable window shows every party member’s DPS, the target selector and encounter timer while capture continues.
-- Compact view stays on top automatically. Drag the DPS header to move it; left-click the percentage dropdown to select 30–100% opacity. No pin control or right-click menu.
-- The restore icon returns to full view and turns always-on-top off. Capture and chart-copy controls work in both views.
-- Mode, opacity, both window sizes and position are remembered locally. Windows saved on disconnected monitors are moved into a visible work area.
-- Removed the full-view settings/options menu, including its export and troubleshooting controls. Both views use direct left-click controls.
-- Copied charts remain full-size and opaque, including when the app starts directly in compact view.
+- Returning to full view restores 100% opacity and turns always-on-top off. Compact view remembers its previous opacity when you switch back, including across restarts.
+- Both views keep the same button order: capture, compact/restore, then share.
+- The website now includes an app preview with illustrative party data and instructions for compact mode, dragging, opacity and restoring full view.
 
-Getting started: install the .NET 8 Desktop Runtime (Windows x64) and Npcap, extract the entire ZIP, open LocalDpsTracker.exe, click play, then teleport once to refresh character identity and NPC spawn data. Use windowed or borderless game mode for desktop-window visibility; exclusive fullscreen can cover an always-on-top window.
+Compact mode shows every party member’s DPS, the selected target and timer. Drag the DPS header to move it and left-click the percentage dropdown to select opacity. Neither view has an options menu. Chart copies stay full-size and opaque.
 
-Validation: Windows build and offline self-tests; synthetic five-player UI checks at default/minimum sizes, left-click opacity dropdown and absence of options menus, native Windows opacity/topmost checks, restore/startup preferences, target selection during new fights, off-screen recovery and opaque full-party chart rendering. No new independent in-game damage benchmark is claimed.
+Getting started: install the .NET 8 Desktop Runtime (Windows x64) and Npcap, extract the entire ZIP, launch LocalDpsTracker.exe, click play, then teleport once to refresh character identity and NPC spawn data. Use windowed or borderless game mode for desktop-window visibility; exclusive fullscreen can cover desktop windows.
 
-The licensed English target catalog remains bundled. Release assets contain blank profiles and no player recordings, learned name caches or saved window preferences. Known protocol, identity/spawn, combat-power, pet and relay limitations remain unchanged.
+Validation: Windows build and offline self-tests; synthetic UI and native Windows checks for full-view opacity reset, topmost state, remembered compact opacity, button order, target/history selection, five-party-row layouts and full-size opaque chart rendering. These are not an independent in-game damage benchmark.
+
+The licensed English target catalog remains bundled. Public assets contain blank profiles and no player recordings, learned names or saved window preferences. Existing protocol, combat-power, identity/spawn, pet and relay limitations remain unchanged.

@@ -60,12 +60,13 @@ Use the share icon beside the timer to copy the full party chart to your clipboa
 Choose a target and fight from the target dropdown. Latest follows new fights automatically.
 Click the compact-view icon for a draggable party DPS window that stays on top.
 Drag its DPS header to move it; left-click the percentage dropdown for opacity.
-The restore icon returns to full view and turns always-on-top off. Settings,
-opacity, both sizes and position are remembered locally. Use windowed or
+The restore icon returns to full view at 100% opacity and turns always-on-top off.
+Compact opacity, both sizes and position are remembered locally. Capture, view
+switching and share buttons keep the same order in both views. Use windowed or
 borderless game mode; exclusive fullscreen can cover desktop windows.
 
-No account, AionFlex install, telemetry, or automatic uploads. Diagnostic recordings
-are saved only on request and can contain names/identifiers; keep them private.
+No account, AionFlex install, telemetry, or automatic uploads. Chart sharing
+copies an image to the Windows clipboard. There is no options menu.
 
 Source, full instructions, known limits and issue tracker:
 https://github.com/sccdmaomao/aion2-dps-tracker

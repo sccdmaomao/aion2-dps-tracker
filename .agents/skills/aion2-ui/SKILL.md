@@ -19,7 +19,9 @@ Read [CONTRIBUTING.md](../../../CONTRIBUTING.md). Main files are
   Controls use left clicks; capture status is available on capture hover.
 - Compact view stays on top, shows party DPS/target/timer and moves by dragging
   the DPS header. Its percentage dropdown selects opacity. Restoring full view
-  turns always-on-top off. Window preferences are saved locally.
+  turns always-on-top off and restores 100% opacity. Compact opacity is remembered
+  separately across mode switches and restarts. Capture, compact/restore and
+  share keep the same order in both views. Window preferences are saved locally.
 - Column resizing/reordering is disabled. The player column adapts to window
   width. Names show item level/power; unavailable values use a dash.
 
