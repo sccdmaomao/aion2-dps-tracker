@@ -46,9 +46,10 @@ https://dotnet.microsoft.com/en-us/download/dotnet/8.0
 https://npcap.com/#download
 
 Extract the complete ZIP into a writable folder. Enter Aion 2, open LocalDpsTracker.exe,
-and click Start capturing. Adapter, ports and character identity are automatic.
-If your name has not arrived, use the optional name field at the top of the app.
-Starting capture before loading an area improves identity/spawn coverage.
+and click Start capturing. Adapter and ports are automatic. Character identity
+arrives during area loading: if your name is missing, keep capture running and
+teleport once. Opening equipment does not resend your identity.
+Or use the optional name field. Names are saved locally across release folders.
 
 The public build has no bulk enemy-name catalog. An optional local target-names.json
 can map NPC template IDs to names. Damage and defeat markers work without names.

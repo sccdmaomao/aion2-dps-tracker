@@ -2,12 +2,14 @@ using System.Text.Json;
 namespace LocalDps;
 public sealed record TrackingProfile(string SelfName)
 {
-    public static string FilePath=>Path.Combine(AppContext.BaseDirectory,"track-people.json");
-    public static TrackingProfile Load()
+    public static string FilePath=>Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"LocalDps","track-people.json");
+    public static TrackingProfile Load(string? path=null,string? legacyPath=null)
     {
-        if(!File.Exists(FilePath))return new("");
-        if(new FileInfo(FilePath).Length>8192)throw new InvalidDataException("Tracking profile is too large.");
-        var profile=JsonSerializer.Deserialize<TrackingProfile>(File.ReadAllText(FilePath),new JsonSerializerOptions{PropertyNameCaseInsensitive=true})??throw new InvalidDataException("Invalid tracking profile.");
+        path??=FilePath;legacyPath??=Path.Combine(AppContext.BaseDirectory,"track-people.json");
+        string source=File.Exists(path)?path:legacyPath;
+        if(!File.Exists(source))return new("");
+        if(new FileInfo(source).Length>8192)throw new InvalidDataException("Tracking profile is too large.");
+        var profile=JsonSerializer.Deserialize<TrackingProfile>(File.ReadAllText(source),new JsonSerializerOptions{PropertyNameCaseInsensitive=true})??throw new InvalidDataException("Invalid tracking profile.");
         return Create(profile.SelfName);
     }
     public static TrackingProfile Create(string self)
@@ -17,5 +19,11 @@ public sealed record TrackingProfile(string SelfName)
         return new(self);
     }
     public void Apply(CombatScope scope){scope.ConfirmedSelfName=SelfName;}
-    public void Save()=>File.WriteAllText(FilePath,JsonSerializer.Serialize(this,new JsonSerializerOptions{WriteIndented=true}));
+    public void Save(string? path=null)
+    {
+        path??=FilePath;Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+        string temporary=path+"."+Guid.NewGuid().ToString("N")+".tmp";
+        try{File.WriteAllText(temporary,JsonSerializer.Serialize(this,new JsonSerializerOptions{WriteIndented=true}));File.Move(temporary,path,true);}
+        finally{if(File.Exists(temporary))File.Delete(temporary);}
+    }
 }

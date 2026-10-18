@@ -21,10 +21,12 @@ uploads, or AionFlex installation required.
 4. Enter Aion 2 and click **Start capturing**. Adapter and game ports are automatic.
 
 Your character name is detected when the server sends a local-character identity
-message. If capture starts after that message, use the optional name field at the
-top of the window. Detected names take priority over stale saved names. Start
-capture before loading an area for the best chance of receiving identity and
-target spawn messages.
+message during area loading. If you started capture after entering the world,
+keep it running and teleport once. Opening the equipment window
+does not resend this identity message. You can also use the optional name field.
+Detected names take priority over stale saved names. Your name is remembered in
+`%LOCALAPPDATA%\LocalDps\track-people.json` across release folders. This remembers
+the name only; the current combat entity still needs to be mapped from traffic.
 
 ## Features
 
@@ -64,7 +66,8 @@ Capture starts only when requested. There are no outbound HTTP clients, accounts
 telemetry endpoints, or automatic uploads. The app does not inject into the game
 or read game process memory.
 
-Character fallback: `track-people.json` beside the executable. Learned names:
+Character fallback: `%LOCALAPPDATA%\LocalDps\track-people.json` (older profiles
+beside the executable are read when no saved profile exists). Learned names:
 `%LOCALAPPDATA%\LocalDps\known-character-names.json`. Neither file grants party
 membership by itself. Saved encounters go to `%LOCALAPPDATA%\LocalDps\encounters`.
 

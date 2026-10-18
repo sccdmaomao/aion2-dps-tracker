@@ -1,9 +1,11 @@
-Local DPS Tracker v0.9.1 makes the project branding consistent across the app, website, documentation and Windows package.
+Local DPS Tracker v0.9.2 improves character-name recovery when capture starts after entering the world.
 
-- App header, window title and executable metadata now say Local DPS Tracker.
-- Launch the app with LocalDpsTracker.exe; release packages now use the LocalDpsTracker prefix.
-- Updated website, setup instructions and app screenshot to match.
-- Existing local settings and name caches remain compatible. Capture and DPS behavior are unchanged.
+- The app now explains how to recover a missed identity message: keep capture running and teleport once. Opening equipment does not resend that message.
+- Detected and manually entered names are saved under %LOCALAPPDATA%\LocalDps, so extracting a new release no longer resets the saved fallback name.
+- Existing profiles beside the executable remain readable when no saved user profile exists. Saved names do not prove party membership or replace the current combat-entity mapping.
+- Added regression tests for profile compatibility, persistence across updates, explicit clearing and size limits.
+
+First-time automatic detection still requires the server's local-character identity message. This update does not identify the local character from arbitrary nearby names.
 
 Windows x64, .NET 8 Desktop Runtime and Npcap are required separately. Extract the whole ZIP and read START-HERE.txt. No account, AionFlex install, telemetry or automatic uploads.
 

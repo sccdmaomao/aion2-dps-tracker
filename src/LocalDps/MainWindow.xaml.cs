@@ -73,7 +73,8 @@ public partial class MainWindow : Window
         if(DateTimeOffset.UtcNow-lastProfileSaveAttempt<TimeSpan.FromSeconds(5))return;
         string? detected;
         lock(gate)detected=scope.Identity.LocalPlayerId is int id?scope.Identity.Names.GetValueOrDefault(id):null;
-        if(string.IsNullOrEmpty(detected)||detected==savedSelfName)return;
+        if(string.IsNullOrEmpty(detected))detected=savedSelfName;
+        if(string.IsNullOrEmpty(detected)||(detected==savedSelfName&&File.Exists(TrackingProfile.FilePath)))return;
         lastProfileSaveAttempt=DateTimeOffset.UtcNow;
         try{TrackingProfile.Create(detected).Save();savedSelfName=detected;profileSaveStatus="";}
         catch(Exception ex){profileSaveStatus=" · character name could not be saved: "+ex.Message;}
@@ -87,7 +88,7 @@ public partial class MainWindow : Window
         CharacterEntry.Visibility=editingCharacter||SelfNameBox.IsKeyboardFocusWithin||!hasName?Visibility.Visible:Visibility.Collapsed;
         ChangeCharacterButton.Visibility=hasName?Visibility.Visible:Visibility.Collapsed;
         CancelCharacterButton.Visibility=hasName?Visibility.Visible:Visibility.Collapsed;
-        CharacterHelp.Text=detected is not null?"Identified from game traffic. You can leave this field blank to use automatic detection.":hasName?"Your saved name is a fallback when the game identity message is missed.":"Start capturing to detect your name. You can also enter it here.";
+        CharacterHelp.Text=detected is not null?"Identified from game traffic. You can leave this field blank to use automatic detection.":hasName?"Your saved name is a fallback when the game identity message is missed.":autoCapturing?"Teleport once while capture is running to detect your character name. Or enter your name above.":"Start capturing, then teleport once to detect your character name. Or enter your name above.";
         if(!editingCharacter&&!SelfNameBox.IsKeyboardFocusWithin&&SelfNameBox.Text!=(name??""))SelfNameBox.Text=name??"";
     }
     void ChangeCharacterClick(object sender,RoutedEventArgs e){editingCharacter=true;lock(gate)RenderCharacter();SelfNameBox.Focus();SelfNameBox.SelectAll();}
@@ -208,7 +209,7 @@ public partial class MainWindow : Window
                 if(profile.SelfName!=scope.ConfirmedSelfName){profile.Apply(scope);encounters.Reset();if(autoCapturing)encounters.Start();attribution.Reset();}
             }
             editingCharacter=false;System.Windows.Input.Keyboard.ClearFocus();
-            string message=profile.SelfName.Length>0?$"Character set to {profile.SelfName}.":"Automatic character detection enabled. Start capturing to detect your name.";
+            string message=profile.SelfName.Length>0?$"Character set to {profile.SelfName}.":"Automatic character detection enabled. Start capturing, then teleport once to detect your name.";
             try{if(persistKnownNames)profile.Save();savedSelfName=profile.SelfName;profileSaveStatus="";}
             catch(Exception ex){message+=" Using it for this session; could not save: "+ex.Message;}
             SelfNameBox.Text=profile.SelfName;Render();StatusText.Text=message;
