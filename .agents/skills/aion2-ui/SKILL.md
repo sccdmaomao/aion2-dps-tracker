@@ -15,8 +15,11 @@ Read [CONTRIBUTING.md](../../../CONTRIBUTING.md). Main files are
 - Target selector, encounter timer/totals and party chart in one window.
 - Play/stop and share icons at the right of the encounter status. Keep tooltips,
   accessible action names and capture-state transitions consistent with the icons.
-- No branding banner or persistent tracking/status footer. Extra controls live
-  in the chart's right-click Options menu; status is available on capture hover.
+- No branding banner, persistent footer or settings/options menu in either view.
+  Controls use left clicks; capture status is available on capture hover.
+- Compact view stays on top, shows party DPS/target/timer and moves by dragging
+  the DPS header. Its percentage dropdown selects opacity. Restoring full view
+  turns always-on-top off. Window preferences are saved locally.
 - Column resizing/reordering is disabled. The player column adapts to window
   width. Names show item level/power; unavailable values use a dash.
 
@@ -40,8 +43,10 @@ upload or external share service.
 
 Build on Windows. Inspect first launch, detected identity and the changed states
 at default and minimum window sizes. For capture controls check both play and
-stop, action tooltips and accessible names. For context-menu changes actually
-open the popup; it is outside the main window's visual subtree.
+stop, action tooltips and accessible names. For dropdown changes actually open the popup; it is outside the main window's
+visual subtree. Check native opacity and topmost state through resize, restart
+and restore. WPF content opacity alone does not fade the opaque HWND background;
+keep whole-window alpha limited to this app's own HWND.
 
 For image changes, render a representative full party with synthetic data,
 including a short viewport and missing stats. Check that the image contains every

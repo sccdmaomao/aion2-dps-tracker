@@ -40,14 +40,12 @@ the name only; the current combat entity still needs to be mapped from traffic.
 - Target filtering while capture continues for the whole party.
 - Automatic encounter timing and the latest 50 encounters in memory.
 - A target is marked **defeated** after a recent positive-to-zero HP transition.
-- Local encounter exports, optional diagnostic recordings, and offline replay.
 - Icon buttons beside the encounter timer start/stop capture and copy a chart image to the clipboard.
   The copied image includes the current target, encounter totals and every party row.
 - Select a target and fight from the target dropdown; repeated fights stay separate. Latest follows new fights automatically.
 - Compact combat view shows the whole party, target and timer in a draggable window.
 - Compact view stays on top automatically; a left-click percentage dropdown adjusts opacity.
   Mode, opacity, sizes and position are remembered locally.
-- Left-click Settings in full view for export, extra columns and troubleshooting.
 
 Damage share is a player's captured damage divided by all captured party damage
 in the selected encounter and target. It is not a percentage of enemy maximum HP.
@@ -58,7 +56,7 @@ All targets use the encounter clock, with a one-second minimum for DPS division.
 A defeated individual target does not end the whole encounter automatically.
 Long boss-phase gaps can split an encounter.
 Leaving or changing party keeps already recorded contributions, including player
-names, in the chart and encounter exports. Former members' new hits are excluded.
+names, in the chart and copied images. Former members' new hits are excluded.
 
 ## Compact combat view
 
@@ -69,8 +67,7 @@ header to select opacity (30–100%); compact view has no pin or right-click men
 The restore icon returns to the full window and turns always-on-top off. The
 target dropdown and capture/share controls work in both views.
 
-Left-click **Settings** in the full window for encounter export, extra columns,
-troubleshooting and other full-view controls. The copied chart stays opaque and
+The full window has no settings/options menu. The copied chart stays opaque and
 readable even when the compact window is small or transparent. Settings and both
 window sizes are remembered across restarts. A window saved on a disconnected
 monitor is moved back into a visible work area.
@@ -93,7 +90,7 @@ JSON object mapping **NPC template IDs**, not changing combat entity IDs, to
 display names. See [the example](examples/target-names.example.json); its IDs and
 names are illustrative, not a real game catalog. Use only data you have permission
 to use. The app reads the file locally at startup, with a 2 MiB / 20,000-entry limit.
-An invalid catalog is ignored and reported under Troubleshooting.
+An invalid catalog is ignored and reported in the capture button’s tooltip.
 
 ## Privacy
 
@@ -105,12 +102,10 @@ Remembered character: `%LOCALAPPDATA%\LocalDps\track-people.json` (older profile
 beside the executable are read when no saved profile exists). Learned names:
 `%LOCALAPPDATA%\LocalDps\known-character-names.json`. Neither file grants party
 membership by itself. Window settings:
-`%LOCALAPPDATA%\LocalDps\window-preferences.json`. Saved encounters go to `%LOCALAPPDATA%\LocalDps\encounters`.
+`%LOCALAPPDATA%\LocalDps\window-preferences.json`. Encounter history stays in memory.
 
-**Settings → Options → Troubleshooting → Save diagnostic recording** explicitly saves raw
-game traffic to a file you select. The in-memory diagnostic ring is bounded to
-two minutes / 16 MiB. Recordings can contain character names and identifiers;
-do not attach them to public issues. Public source and releases contain no real
+Chart sharing copies an image to the Windows clipboard. The UI has no encounter
+export or diagnostic-recording menu. Public source and releases contain no real
 player profiles or recordings. Unicode protocol tests use substituted identities.
 
 ## Build and test

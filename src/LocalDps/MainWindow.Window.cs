@@ -1,7 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -23,11 +22,9 @@ public partial class MainWindow
     {
         persistWindowPreferences=persist;
         try{windowPreferences=(initial??(persist?WindowPreferences.Load():new())).Normalize();}
-        catch(Exception ex){StatusText.Text="Window settings could not load: "+ex.Message;}
+        catch(Exception ex){statusMessage="Window settings could not load: "+ex.Message;}
         Width=windowPreferences.Width;Height=windowPreferences.Height;
-        OnTop.IsChecked=windowPreferences.AlwaysOnTop;
-        OpacitySlider.Value=windowPreferences.Opacity*100;
-        SynchronizeOpacityDropdown();
+        SetWindowOpacity(windowPreferences.Opacity*100);
         if(windowPreferences.Left is double left&&windowPreferences.Top is double top)
         {
             WindowStartupLocation=WindowStartupLocation.Manual;Left=left;Top=top;
@@ -45,23 +42,14 @@ public partial class MainWindow
         Closing+=(_,_)=>{preferencesSaveTimer.Stop();SaveWindowPreferences();};
     }
 
-    void CompactClick(object sender,RoutedEventArgs e)
-    {
-        CompactOption.IsChecked=!compactMode;
-    }
-    void CompactChanged(object sender,RoutedEventArgs e)
-    {
-        if(!windowPreferencesReady)return;
-        SetCompact(CompactOption.IsChecked==true);
-    }
+    void CompactClick(object sender,RoutedEventArgs e)=>SetCompact(!compactMode);
     void SetCompact(bool compact)
     {
-        if(compactMode==compact){CompactOption.IsChecked=compact;return;}
+        if(compactMode==compact){Topmost=compact;return;}
         if(windowPreferencesReady)CaptureWindowPreferences();
         if(WindowState!=WindowState.Normal)WindowState=WindowState.Normal;
         compactMode=compact;
-        OnTop.IsChecked=compact;
-        ChartBorder.ContextMenu.IsOpen=false;
+        Topmost=compact;
         NormalRoot.Visibility=compact?Visibility.Collapsed:Visibility.Visible;
         CompactRoot.Visibility=compact?Visibility.Visible:Visibility.Collapsed;
         WindowStyle=compact?WindowStyle.None:WindowStyle.SingleBorderWindow;
@@ -69,7 +57,6 @@ public partial class MainWindow
         MinWidth=compact?260:460;MinHeight=compact?180:520;
         Width=compact?windowPreferences.CompactWidth:windowPreferences.Width;
         Height=compact?windowPreferences.CompactHeight:windowPreferences.Height;
-        CompactOption.IsChecked=compact;
         KeepWindowVisible();
         ApplyWindowOpacity();
         ScheduleWindowPreferencesSave();
@@ -78,21 +65,9 @@ public partial class MainWindow
     {
         if(e.ChangedButton==MouseButton.Left&&e.ButtonState==MouseButtonState.Pressed)DragMove();
     }
-    void OptionsClick(object sender,RoutedEventArgs e)
-    {
-        var menu=ChartBorder.ContextMenu;
-        menu.PlacementTarget=OptionsButton;menu.Placement=PlacementMode.Bottom;
-        menu.IsOpen=true;
-        ((MenuItem)menu.Items[0]).IsSubmenuOpen=true;
-    }
-    void UpdateAlwaysOnTop()
-    {
-        Topmost=compactMode||OnTop.IsChecked==true;
-        ScheduleWindowPreferencesSave();
-    }
     void CompactOpacityChanged(object sender,SelectionChangedEventArgs e)
     {
-        if(!synchronizingOpacity&&CompactOpacity.SelectedItem is OpacityChoice choice)OpacitySlider.Value=choice.Percent;
+        if(!synchronizingOpacity&&CompactOpacity.SelectedItem is OpacityChoice choice)SetWindowOpacity(choice.Percent);
     }
     void SynchronizeOpacityDropdown()
     {
@@ -108,10 +83,9 @@ public partial class MainWindow
         }
         finally{synchronizingOpacity=false;}
     }
-    void OpacityChanged(object sender,RoutedPropertyChangedEventArgs<double> e)
+    void SetWindowOpacity(double percent)
     {
-        windowOpacity=Math.Clamp(e.NewValue/100,.3,1);
-        if(OpacityValue is not null)OpacityValue.Text=$"{windowOpacity:P0}";
+        windowOpacity=Math.Clamp(percent/100,.3,1);
         SynchronizeOpacityDropdown();
         ApplyWindowOpacity();
         ScheduleWindowPreferencesSave();
@@ -129,7 +103,7 @@ public partial class MainWindow
         {
             if((style&layered)==0)SetWindowLongPtr(handle,extendedStyle,new IntPtr(style|layered));
             if(!SetLayeredWindowAttributes(handle,0,(byte)Math.Round(windowOpacity*255),2))
-                StatusText.Text="Window opacity could not be applied.";
+                statusMessage="Window opacity could not be applied.";
         }
     }
     IntPtr WindowMessage(IntPtr hwnd,int message,IntPtr wParam,IntPtr lParam,ref bool handled)
@@ -174,7 +148,7 @@ public partial class MainWindow
     {
         if(!windowPreferencesReady||!persistWindowPreferences)return;
         try{CaptureWindowPreferences();windowPreferences.Save();}
-        catch(Exception ex){StatusText.Text="Window settings could not save: "+ex.Message;}
+        catch(Exception ex){statusMessage="Window settings could not save: "+ex.Message;}
     }
 
     // Monitor work areas are in desktop pixels; convert using this HWND's DPI.

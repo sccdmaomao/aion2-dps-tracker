@@ -1,11 +1,9 @@
 using System.IO;
-using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Microsoft.Win32;
 using LocalDps.Capture;
 using LocalDps.Protocol;
 namespace LocalDps;
@@ -21,7 +19,6 @@ public partial class MainWindow : Window
     readonly IdentityRecordStream identityRecords=new();
     readonly HashSet<int> serverPorts=new();
     readonly PartyHitAttribution attribution;
-    readonly DiagnosticRecording diagnostics=new();
     readonly CombatScope scope=new();
     readonly TargetIdentityDecoder targetIdentity=new();
     readonly TargetHealthDecoder targetHealth=new();
@@ -34,19 +31,18 @@ public partial class MainWindow : Window
     string savedSelfName="";
     string profileSaveStatus="";
     DateTimeOffset lastProfileSaveAttempt;
-    bool demo;
     long chunks;
-    bool replaying;
     bool autoCapturing,noPacketsWarned,connectionWaiting;
     DateTimeOffset captureStarted,lastConnectionCheck;
     string activeConnection="";
+    string statusMessage="Enter Aion 2, then start capturing.";
     int shareFeedbackVersion;
     void UpdateCaptureButton(bool active)
     {
         string action=active?"Stop capturing":"Start capturing";
         StartIcon.Data=(Geometry)FindResource(active?"StopGeometry":"PlayGeometry");
         System.Windows.Automation.AutomationProperties.SetName(StartButton,action);
-        StartButton.ToolTip=action+"\n"+StatusText.Text;
+        StartButton.ToolTip=action+"\n"+statusMessage+nameCacheStatus+profileSaveStatus+(targetIdentity.CatalogWarning is {} warning?" · "+warning:"");
         CompactStartIcon.Data=StartIcon.Data;CompactStart.ToolTip=StartButton.ToolTip;
         System.Windows.Automation.AutomationProperties.SetName(CompactStart,action);
     }
@@ -122,11 +118,10 @@ public partial class MainWindow : Window
     public MainWindow(bool persistKnownNames=true,KnownCharacterName[]? rememberedNames=null,TrackingProfile? trackingProfile=null,WindowPreferences? windowPreferences=null,bool? persistWindowPreferences=null)
     {
         InitializeComponent();
-        ChartBorder.ContextMenu.Resources=Resources;
         this.persistKnownNames=persistKnownNames;
         if(rememberedNames is not null)scope.Party.RestoreKnownNames(rememberedNames);
         if(persistKnownNames)try{scope.Party.RestoreKnownNames(PartyNameStore.Load(Path.Combine(AppContext.BaseDirectory,"learned-character-names.json")));var saved=PartyNameStore.Load();scope.Party.RestoreKnownNames(saved);var known=scope.Party.KnownNames;savedKnownNamesVersion=known.Length==saved.Length&&known.All(n=>saved.Contains(n))?scope.Party.KnownNamesVersion:-1;}catch(Exception ex){nameCacheStatus=" · name cache: "+ex.Message;}
-        try{var profile=trackingProfile??TrackingProfile.Load();profile.Apply(scope);savedSelfName=profile.SelfName;}catch(Exception ex){StatusText.Text="Character name could not load: "+ex.Message;}
+        try{var profile=trackingProfile??TrackingProfile.Load();profile.Apply(scope);savedSelfName=profile.SelfName;}catch(Exception ex){statusMessage="Character name could not load: "+ex.Message;}
         attribution=new(scope,encounters.Add);
         decoder.IncludeHit=SkillRules.LoadBundled().Include;
         encounters.DisplayName=scope.Label;
@@ -136,22 +131,15 @@ public partial class MainWindow : Window
         identityRecords.RecordObserved+=targetIdentity.Observe;
         identityRecords.RecordObserved+=targetHealth.Observe;
         decoder.HitDecoded+=attribution.Add;
-        FramingBox.ItemsSource=new[]{"Legacy combat","Width-aware"};FramingBox.SelectedIndex=0;
-        FramingBox.SelectionChanged+=(_,_)=>
-        {
-            if(replaying){FramingBox.IsEnabled=false;return;}
-            StopAutomatic();Reset();decoder.Framing=FramingBox.SelectedIndex==0?GameFraming.LegacyCombat:GameFraming.WidthAware;
-            StatusText.Text="Framing changed. Encounter reset; start a new capture or replay.";
-        };
         capture.StreamChunk+=AcceptChunk;
-        capture.Status+=message=>Dispatcher.BeginInvoke(()=>{if(message.StartsWith("Capture stopped:")||message.StartsWith("TCP gap"))StatusText.Text=message;});
+        capture.Status+=message=>Dispatcher.BeginInvoke(()=>{if(message.StartsWith("Capture stopped:")||message.StartsWith("TCP gap"))statusMessage=message;});
         timer.Tick+=(_,_)=>{Render();CheckAutomatic();SaveKnownNames();SaveDetectedCharacter();}; timer.Start();
         Closed+=(_,_)=>{timer.Stop();capture.Dispose();SaveKnownNames(true);};
         InitializeWindowPreferences(persistWindowPreferences??persistKnownNames,windowPreferences);
     }
     void SaveDetectedCharacter()
     {
-        if(!persistKnownNames||!autoCapturing||replaying||demo)return;
+        if(!persistKnownNames||!autoCapturing)return;
         if(DateTimeOffset.UtcNow-lastProfileSaveAttempt<TimeSpan.FromSeconds(5))return;
         string? detected;
         lock(gate)detected=scope.Identity.LocalPlayerId is int id?scope.Identity.Names.GetValueOrDefault(id):null;
@@ -179,7 +167,7 @@ public partial class MainWindow : Window
         try{PartyNameStore.Save(names);savedKnownNamesVersion=version;nameCacheStatus="";}
         catch(Exception ex){nameCacheStatus=" · name cache: "+ex.Message;}
     }
-    void AcceptChunk(byte[] data,DateTimeOffset time,string flow){lock(gate){encounters.AdvanceTo(time.ToUnixTimeMilliseconds());diagnostics.Add(flow,time.ToUnixTimeMilliseconds(),data);scope.BeginChunk();try{if(GameFlowDirection.IsServerToClient(flow,serverPorts))identityRecords.Feed(flow,data,time.ToUnixTimeMilliseconds());decoder.Feed(flow,data,time.ToUnixTimeMilliseconds());attribution.Flush(time.ToUnixTimeMilliseconds());chunks++;}finally{scope.EndChunk();}}}
+    void AcceptChunk(byte[] data,DateTimeOffset time,string flow){lock(gate){encounters.AdvanceTo(time.ToUnixTimeMilliseconds());scope.BeginChunk();try{if(GameFlowDirection.IsServerToClient(flow,serverPorts))identityRecords.Feed(flow,data,time.ToUnixTimeMilliseconds());decoder.Feed(flow,data,time.ToUnixTimeMilliseconds());attribution.Flush(time.ToUnixTimeMilliseconds());chunks++;}finally{scope.EndChunk();}}}
     void StopAutomatic(){autoCapturing=false;capture.Stop();lock(gate)encounters.Stop();UpdateCaptureButton(false);activeConnection="";}
     void DetectAndCapture()
     {
@@ -190,8 +178,7 @@ public partial class MainWindow : Window
         if(signature==activeConnection&&capture.IsRunning){connectionWaiting=false;return;}
         capture.Stop();lock(gate){decoder.Reset();identityRecords.Reset();scope.Reset();targetIdentity.Reset();targetHealth.Reset();encounters.Reset();encounters.Start();attribution.Reset();serverPorts.Clear();serverPorts.UnionWith(ports);}
         capture.StartGamePorts(device.Name,ports);activeConnection=signature;captureStarted=DateTimeOffset.UtcNow;noPacketsWarned=false;connectionWaiting=false;
-        AutoDetails.Text=$"Adapter: {device.Description}. Game server port(s): {string.Join(", ",connections.Select(c=>c.RemotePort).Distinct())}. Game service filters: {ports.Length}.";
-        StatusText.Text="Capturing. Waiting for combat…";
+        statusMessage="Capturing. Waiting for combat…";
     }
     void CheckAutomatic()
     {
@@ -200,43 +187,23 @@ public partial class MainWindow : Window
         {
             lastConnectionCheck=now;
             try{DetectAndCapture();}
-            catch(Exception ex){connectionWaiting=true;StatusText.Text="Waiting for the game connection: "+ex.Message;return;}
+            catch(Exception ex){connectionWaiting=true;statusMessage="Waiting for the game connection: "+ex.Message;return;}
         }
         if(connectionWaiting)return;
         if(!noPacketsWarned&&capture.PacketsReceived==0&&now-captureStarted>TimeSpan.FromSeconds(5))
-        {noPacketsWarned=true;StatusText.Text="No game packets received yet. Checking the game connection automatically; if this persists, verify Npcap can access the adapter.";}
-        if(capture.PacketsReceived>0){lock(gate)StatusText.Text=scope.LocalPlayerId is null?$"Capturing · waiting for your identity · {scope.AllowedActors().Count} verified teammate(s) tracked":meter.TotalHits>0?$"Capturing · {meter.TotalHits:N0} hits from you and confirmed party members":"Capturing. No hits from you or confirmed party members.";}
+        {noPacketsWarned=true;statusMessage="No game packets received yet. Checking the game connection automatically; if this persists, verify Npcap can access the adapter.";}
+        if(capture.PacketsReceived>0){lock(gate)statusMessage=scope.LocalPlayerId is null?$"Capturing · waiting for your identity · {scope.AllowedActors().Count} verified teammate(s) tracked":meter.TotalHits>0?$"Capturing · {meter.TotalHits:N0} hits from you and confirmed party members":"Capturing. No hits from you or confirmed party members.";}
     }
     void StartClick(object sender,RoutedEventArgs e)
     {
         try
         {
-            if(replaying) throw new InvalidOperationException("Wait for the current replay to finish.");
-            if(autoCapturing){StopAutomatic();StatusText.Text="Stopped. Your encounter is available to save.";return;}
+            if(autoCapturing){StopAutomatic();statusMessage="Stopped. Your encounter is available to review or copy.";return;}
             capture.Stop();Reset(true);DetectAndCapture();autoCapturing=true;lastConnectionCheck=DateTimeOffset.UtcNow;UpdateCaptureButton(true);
         }
-        catch(Exception ex){autoCapturing=false;UpdateCaptureButton(false);StatusText.Text="Cannot start: "+ex.Message;}
+        catch(Exception ex){autoCapturing=false;UpdateCaptureButton(false);statusMessage="Cannot start: "+ex.Message;}
     }
-    async void ReplayClick(object sender,RoutedEventArgs e)
-    {
-        if(replaying)return;
-        var dialog=new OpenFileDialog{Filter="Local recordings|*.pcap;*.cap;*.ndjson|All files|*.*"};
-        if(dialog.ShowDialog()!=true)return;
-        StopAutomatic();Reset(true);
-        replaying=true;
-        FramingBox.IsEnabled=false;
-        try{await Task.Run(()=>{if(Path.GetExtension(dialog.FileName).Equals(".ndjson",StringComparison.OrdinalIgnoreCase))RecordedStreamReplay.Read(dialog.FileName,AcceptChunk);else capture.ReplayPcap(dialog.FileName);});StatusText.Text="Replay finished. Compare decoded totals with a known encounter to validate accuracy.";}
-        catch(Exception ex){StatusText.Text="Replay failed: "+ex.Message;}
-        finally{replaying=false;FramingBox.IsEnabled=true;}
-    }
-    void Reset(bool clearIdentity=false){lock(gate){encounters.Reset();if(autoCapturing)encounters.Start();attribution.Reset();decoder.Reset();identityRecords.Reset();if(clearIdentity){diagnostics.Reset();scope.Reset();targetIdentity.Reset();targetHealth.Reset();serverPorts.Clear();}chunks=0;demo=false;}Render();}
-    void ResetClick(object sender,RoutedEventArgs e){if(replaying)return;Reset();StatusText.Text=autoCapturing?"Encounter history cleared. Capturing…":"Encounter history cleared. Click Start capturing to begin.";}
-    void DemoClick(object sender,RoutedEventArgs e)
-    {
-        if(replaying)return;
-        StopAutomatic();Reset();lock(gate){demo=true;for(int i=0;i<20;i++)encounters.Add(new CombatHit(i*1000,100+i%3,900,200+i%4,1000+i*137,false,i));encounters.AdvanceTo(34000);}
-        StatusText.Text="DEMO DATA — synthetic hits to preview the display; this does not validate the game decoder.";Render();
-    }
+    void Reset(bool clearIdentity=false){lock(gate){encounters.Reset();if(autoCapturing)encounters.Start();attribution.Reset();decoder.Reset();identityRecords.Reset();if(clearIdentity){scope.Reset();targetIdentity.Reset();targetHealth.Reset();serverPorts.Clear();}chunks=0;}Render();}
     string ResolveTarget(int id)=>scope.Identity.Names.TryGetValue(id,out string? name)?name:targetIdentity.Resolve(id)??$"Unknown target {id}";
     TargetDeath? DeathFor(int id)=>meter.TargetTimes(id) is {} times?targetHealth.FindDeath(id,times.First,times.Last):null;
     // Only verified hits enter encounters; later roster changes must not filter history.
@@ -260,22 +227,18 @@ public partial class MainWindow : Window
         TargetBox.ItemsSource=items.ToArray();
         TargetBox.SelectedItem=items.FirstOrDefault(x=>x.EncounterId==selected?.EncounterId&&x.TargetId==selected?.TargetId)??items[0];
     }
-    void Render(){lock(gate){RenderCharacter();UpdateCaptureButton(autoCapturing);if(autoCapturing)encounters.AdvanceTo(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());var allowed=scope.AllowedActors();UpdateTargets();var view=CurrentView((TargetBox.SelectedItem as TargetChoice)?.TargetId);PlayersGrid.ItemsSource=demo?view.Players:scope.DisplayRows(view.Players);CompactPlayers.ItemsSource=PlayersGrid.ItemsSource;IdentityStatus.Text=demo?"Demo: synthetic data only":scope.Status;Totals.Text=$"{(demo?"DEMO · ":"")}{view.Damage:N0} damage · {view.Damage/Math.Max(1,view.Seconds):N1} DPS · {view.Hits:N0} hits";EncounterTime.Text=SelectedEncounter is {} fight?$"{encounters.State(fight)} · {TimeSpan.FromSeconds(view.Seconds).ToString(@"hh\:mm\:ss")}":"Waiting for combat · 00:00:00";DiagnosticsText.Text=$"Packets {capture.PacketsReceived:N0} · TCP chunks {chunks:N0} · frames {decoder.RecordsFramed:N0} · awaiting identity {attribution.PendingCount:N0} · party updates {scope.Party.PeriodicUpdatesSeen:N0} · names {scope.Identity.Names.Count} · outside-scope hits {scope.ExcludedHits:N0} · malformed {decoder.RejectedRecords:N0} · dropped {capture.DroppedFrames:N0}{nameCacheStatus}{profileSaveStatus}{(targetIdentity.CatalogWarning is {} warning?" · "+warning:"")}";EntityNamesText.Text=string.Join(Environment.NewLine,scope.Identity.Names.OrderBy(p=>p.Value).Take(64).Select(p=>$"{p.Value} · ID {p.Key} · {(allowed.Contains(p.Key)?p.Key==scope.LocalPlayerId?"you":"party":"excluded")} "));}}
-    void TopChanged(object sender,RoutedEventArgs e)=>UpdateAlwaysOnTop();
-    void DetailsChanged(object sender,RoutedEventArgs e)
+    void Render()
     {
-        if(DamageColumn is null)return;
-        var visibility=((System.Windows.Controls.CheckBox)sender).IsChecked==true?Visibility.Visible:Visibility.Collapsed;
-        DamageColumn.Visibility=HitsColumn.Visibility=ShareColumn.Visibility=visibility;
-    }
-    void SaveDiagnosticsClick(object sender,RoutedEventArgs e)
-    {
-        string[] lines;lock(gate)lines=diagnostics.Lines();
-        if(lines.Length==0){StatusText.Text="Start capturing first; no game traffic is available to save.";return;}
-        var dialog=new SaveFileDialog{Filter="Local diagnostic recording|*.ndjson",FileName="LocalDpsTracker-diagnostic-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+".ndjson",InitialDirectory=Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)};
-        if(dialog.ShowDialog()!=true)return;
-        try{File.WriteAllLines(dialog.FileName,lines);StatusText.Text="Saved local game diagnostic: "+dialog.FileName;}
-        catch(Exception ex){StatusText.Text="Diagnostic save failed: "+ex.Message;}
+        lock(gate)
+        {
+            RenderCharacter();UpdateCaptureButton(autoCapturing);
+            if(autoCapturing)encounters.AdvanceTo(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            UpdateTargets();
+            var view=CurrentView((TargetBox.SelectedItem as TargetChoice)?.TargetId);
+            PlayersGrid.ItemsSource=scope.DisplayRows(view.Players);CompactPlayers.ItemsSource=PlayersGrid.ItemsSource;
+            Totals.Text=$"{view.Damage:N0} damage · {view.Damage/Math.Max(1,view.Seconds):N1} DPS · {view.Hits:N0} hits";
+            EncounterTime.Text=SelectedEncounter is {} fight?$"{encounters.State(fight)} · {TimeSpan.FromSeconds(view.Seconds).ToString(@"hh\:mm\:ss")}":"Waiting for combat · 00:00:00";
+        }
     }
     public object CheckRecording(string path,int actor,int target)
     {
@@ -285,20 +248,4 @@ public partial class MainWindow : Window
         return new{rows=rows.Length,players=rows,hits=rows.Sum(r=>r.Hits),damage=rows.Sum(r=>r.Damage),displayed=Totals.Text,characterDisplay=CharacterNameText.Text,confirmedSelfName=scope.ConfirmedSelfName,encounter=EncounterInfo(),observedDeaths=targetHealth.Deaths,targetDeaths=meter.TargetIds.Select(DeathFor).Where(d=>d is not null).ToArray(),encounterCount=encounters.Encounters.Count,encounterHistory=encounters.Encounters.Select(e=>new {id=e.Id,damage=e.Meter.TotalDamage,hits=e.Meter.TotalHits,seconds=encounters.Seconds(e),state=encounters.State(e)}).ToArray(),tcpChunks=chunks,localPlayerId=scope.LocalPlayerId,selfProof=scope.SelfProof,observedNames=scope.Identity.Names,scopeStatus=scope.Status,outsideScopeHits=scope.ExcludedHits,identityFrames=identityRecords.RecordsFramed,identityBundles=identityRecords.BundlesDecoded,identityRejected=identityRecords.RejectedRecords,partyCandidateCount=scope.Party.CandidateSnapshotsSeen,partyPeriodicUpdates=scope.Party.PeriodicUpdatesSeen,partyRecoveredAtStartup=scope.Party.RecoveredAtStartup,partyAuthoritative=scope.Party.IsAuthoritative,partyMembers=scope.Party.Members,partyProof=scope.Party.Proof,targets=meter.Targets(elapsedSeconds:SelectedEncounter is {} selected?encounters.Seconds(selected):0),observedTargetNames=targetIdentity.Names,recommendedAdapter=AdapterSelection.Recommend(PacketCaptureService.ListDevices())?.Description};
     }
     object? EncounterInfo()=>SelectedEncounter is {} fight?new {id=fight.Id,startUnixMs=fight.FirstMs,endUnixMs=encounters.EndMs(fight),lastDamageUnixMs=fight.LastMs,durationSeconds=encounters.Seconds(fight),state=encounters.State(fight),idleTimeoutSeconds=EncounterTracker.IdleTimeoutMs/1000}:null;
-    void SaveClick(object sender,RoutedEventArgs e)
-    {
-        var directory=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),"LocalDps","encounters");
-        try
-        {
-            Directory.CreateDirectory(directory);
-            var path=Path.Combine(directory,DateTime.Now.ToString("yyyyMMdd-HHmmss-fff")+".json");
-            lock(gate)
-            {
-                int? targetId=(TargetBox.SelectedItem as TargetChoice)?.TargetId;
-                var view=CurrentView(targetId);
-                File.WriteAllText(path,JsonSerializer.Serialize(new {schemaVersion=8,demo,encounter=EncounterInfo(),targetDeaths=meter.TargetIds.Select(DeathFor).Where(d=>d is not null).ToArray(),tracking=new{selfName=scope.ConfirmedSelfName,partyMembers=scope.Party.Members,localPlayerId=scope.LocalPlayerId,selfProof=scope.SelfProof,membershipSource=scope.Party.IsAuthoritative?"Decoded active roster":"Self only; awaiting roster",partyProof=scope.Party.Proof},scope=new{targetId},firstHitUnixMs=view.FirstMs,lastHitUnixMs=view.LastMs,durationSeconds=view.Seconds,totalDps=view.Damage/Math.Max(1,view.Seconds),totalDamage=view.Damage,trackedDamageAllTargets=meter.TotalDamage,framing=decoder.Framing.ToString(),diagnostics=new {packets=capture.PacketsReceived,tcpChunks=chunks,framedRecords=decoder.RecordsFramed,bundles=decoder.BundlesDecoded,rejected=decoder.RejectedRecords,excluded=decoder.FilteredHits,dropped=capture.DroppedFrames,opcodes=decoder.OpcodeCounts,rejectionReasons=decoder.RejectionReasons,ignoredNearbyHits=scope.ExcludedHits},players=demo?view.Players:scope.DisplayRows(view.Players),skills=view.Skills,targets=meter.Targets(elapsedSeconds:SelectedEncounter is {} selected?encounters.Seconds(selected):0)},new JsonSerializerOptions{WriteIndented=true}));
-            }
-            StatusText.Text="Saved locally: "+path;
-        }catch(Exception ex){StatusText.Text="Save failed: "+ex.Message;}
-    }
 }

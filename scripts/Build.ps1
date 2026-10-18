@@ -63,7 +63,6 @@ Drag its DPS header to move it; left-click the percentage dropdown for opacity.
 The restore icon returns to full view and turns always-on-top off. Settings,
 opacity, both sizes and position are remembered locally. Use windowed or
 borderless game mode; exclusive fullscreen can cover desktop windows.
-Left-click Settings in full view for export and troubleshooting.
 
 No account, AionFlex install, telemetry, or automatic uploads. Diagnostic recordings
 are saved only on request and can contain names/identifiers; keep them private.
