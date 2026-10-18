@@ -44,7 +44,10 @@ the name only; the current combat entity still needs to be mapped from traffic.
 - Icon buttons beside the encounter timer start/stop capture and copy a chart image to the clipboard.
   The copied image includes the current target, encounter totals and every party row.
 - Select a target and fight from the target dropdown; repeated fights stay separate. Latest follows new fights automatically.
-- Right-click the party chart for export, keep-on-top, extra columns and troubleshooting.
+- Compact combat view shows the whole party, target and timer in a draggable window.
+- Compact view stays on top automatically; a left-click percentage dropdown adjusts opacity.
+  Mode, opacity, sizes and position are remembered locally.
+- Left-click Settings in full view for export, extra columns and troubleshooting.
 
 Damage share is a player's captured damage divided by all captured party damage
 in the selected encounter and target. It is not a percentage of enemy maximum HP.
@@ -56,6 +59,24 @@ A defeated individual target does not end the whole encounter automatically.
 Long boss-phase gaps can split an encounter.
 Leaving or changing party keeps already recorded contributions, including player
 names, in the chart and encounter exports. Former members' new hits are excluded.
+
+## Compact combat view
+
+Click the compact-view icon beside the capture/share controls. Compact mode pins
+itself above other desktop windows and keeps capturing the same party and targets.
+Drag the grip/DPS area to move it. Left-click the percentage dropdown in the
+header to select opacity (30–100%); compact view has no pin or right-click menu.
+The restore icon returns to the full window and turns always-on-top off. The
+target dropdown and capture/share controls work in both views.
+
+Left-click **Settings** in the full window for encounter export, extra columns,
+troubleshooting and other full-view controls. The copied chart stays opaque and
+readable even when the compact window is small or transparent. Settings and both
+window sizes are remembered across restarts. A window saved on a disconnected
+monitor is moved back into a visible work area.
+
+Use the game's windowed or borderless mode for desktop-window visibility;
+exclusive fullscreen can cover an always-on-top desktop window.
 
 ## Target names
 
@@ -83,9 +104,10 @@ or read game process memory.
 Remembered character: `%LOCALAPPDATA%\LocalDps\track-people.json` (older profiles
 beside the executable are read when no saved profile exists). Learned names:
 `%LOCALAPPDATA%\LocalDps\known-character-names.json`. Neither file grants party
-membership by itself. Saved encounters go to `%LOCALAPPDATA%\LocalDps\encounters`.
+membership by itself. Window settings:
+`%LOCALAPPDATA%\LocalDps\window-preferences.json`. Saved encounters go to `%LOCALAPPDATA%\LocalDps\encounters`.
 
-**Right-click chart → Options → Troubleshooting → Save diagnostic recording** explicitly saves raw
+**Settings → Options → Troubleshooting → Save diagnostic recording** explicitly saves raw
 game traffic to a file you select. The in-memory diagnostic ring is bounded to
 two minutes / 16 MiB. Recordings can contain character names and identifiers;
 do not attach them to public issues. Public source and releases contain no real

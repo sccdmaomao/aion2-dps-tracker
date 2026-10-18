@@ -47,6 +47,8 @@ public partial class MainWindow : Window
         StartIcon.Data=(Geometry)FindResource(active?"StopGeometry":"PlayGeometry");
         System.Windows.Automation.AutomationProperties.SetName(StartButton,action);
         StartButton.ToolTip=action+"\n"+StatusText.Text;
+        CompactStartIcon.Data=StartIcon.Data;CompactStart.ToolTip=StartButton.ToolTip;
+        System.Windows.Automation.AutomationProperties.SetName(CompactStart,action);
     }
     BitmapSource CreateChartSnapshot()
     {
@@ -54,7 +56,11 @@ public partial class MainWindow : Window
         // remain untouched, and every party row fits in the copied image.
         var rows=PlayersGrid.Items.Cast<PlayerRow>().ToArray();
         var columns=PlayersGrid.Columns.Where(c=>c.Visibility==Visibility.Visible).ToArray();
-        double width=Math.Max(400,columns.Sum(c=>c.ActualWidth));
+        // The full grid can be unmeasured when the app opens in compact mode.
+        // Keep the copied chart readable and opaque regardless of overlay size.
+        double ColumnWidth(DataGridColumn column)=>!compactMode&&column.ActualWidth>0?column.ActualWidth
+            :column.Width.IsAbsolute?column.Width.Value:Math.Max(220,windowPreferences.Width-44-155);
+        double width=Math.Max(400,columns.Sum(ColumnWidth));
         var table=new DataGrid
         {
             ItemsSource=rows,AutoGenerateColumns=false,IsReadOnly=true,
@@ -77,7 +83,7 @@ public partial class MainWindow : Window
                 DataGridTextColumn text=>new DataGridTextColumn{Binding=text.Binding,ElementStyle=text.ElementStyle},
                 _=>throw new InvalidOperationException("Unsupported chart column.")
             };
-            copy.Header=column.Header;copy.Width=new DataGridLength(Math.Max(1,column.ActualWidth));table.Columns.Add(copy);
+            copy.Header=column.Header;copy.Width=new DataGridLength(ColumnWidth(column));table.Columns.Add(copy);
         }
         var panel=new StackPanel();
         panel.Children.Add(new TextBlock{Text=(TargetBox.SelectedItem as TargetChoice)?.Label??"All targets",FontSize=13,Foreground=(Brush)FindResource("Muted"),Margin=new Thickness(16,12,16,4)});
@@ -89,7 +95,13 @@ public partial class MainWindow : Window
         System.Windows.Documents.TextElement.SetFontFamily(surface,FontFamily);
         surface.Measure(new Size(width,double.PositiveInfinity));surface.Arrange(new Rect(new Point(),surface.DesiredSize));surface.UpdateLayout();
         var bitmap=new RenderTargetBitmap((int)Math.Ceiling(surface.ActualWidth*2),(int)Math.Ceiling(surface.ActualHeight*2),192,192,PixelFormats.Pbgra32);
-        bitmap.Render(surface);bitmap.Freeze();return bitmap;
+        // Fractional layout sizes can leave a transparent final pixel row/column.
+        var background=new DrawingVisual();
+        using(var drawing=background.RenderOpen())drawing.DrawRectangle(surface.Background,null,new Rect(-1,-1,bitmap.PixelWidth/2.0+2,bitmap.PixelHeight/2.0+2));
+        bitmap.Render(background);
+        bitmap.Render(surface);
+        var opaque=new FormatConvertedBitmap(bitmap,PixelFormats.Bgr32,null,0);
+        opaque.Freeze();return opaque;
     }
     async void CopyChartClick(object sender,RoutedEventArgs e)
     {
@@ -97,19 +109,20 @@ public partial class MainWindow : Window
         try
         {
             Render();Clipboard.SetImage(CreateChartSnapshot());
-            ShareIcon.Data=(Geometry)FindResource("CopiedGeometry");ShareButton.ToolTip="Damage chart copied";
+            ShareIcon.Data=CompactShareIcon.Data=(Geometry)FindResource("CopiedGeometry");ShareButton.ToolTip=CompactShare.ToolTip="Damage chart copied";
         }
         catch(Exception ex)
         {
-            ShareIcon.Data=(Geometry)FindResource("CopyErrorGeometry");ShareButton.ToolTip="Could not copy chart: "+ex.Message;
+            ShareIcon.Data=CompactShareIcon.Data=(Geometry)FindResource("CopyErrorGeometry");ShareButton.ToolTip=CompactShare.ToolTip="Could not copy chart: "+ex.Message;
         }
         await Task.Delay(2500);
         if(version!=shareFeedbackVersion)return;
-        ShareIcon.Data=(Geometry)FindResource("ShareGeometry");ShareButton.ToolTip="Copy damage chart to clipboard";
+        ShareIcon.Data=CompactShareIcon.Data=(Geometry)FindResource("ShareGeometry");ShareButton.ToolTip=CompactShare.ToolTip="Copy damage chart to clipboard";
     }
-    public MainWindow(bool persistKnownNames=true,KnownCharacterName[]? rememberedNames=null,TrackingProfile? trackingProfile=null)
+    public MainWindow(bool persistKnownNames=true,KnownCharacterName[]? rememberedNames=null,TrackingProfile? trackingProfile=null,WindowPreferences? windowPreferences=null,bool? persistWindowPreferences=null)
     {
         InitializeComponent();
+        ChartBorder.ContextMenu.Resources=Resources;
         this.persistKnownNames=persistKnownNames;
         if(rememberedNames is not null)scope.Party.RestoreKnownNames(rememberedNames);
         if(persistKnownNames)try{scope.Party.RestoreKnownNames(PartyNameStore.Load(Path.Combine(AppContext.BaseDirectory,"learned-character-names.json")));var saved=PartyNameStore.Load();scope.Party.RestoreKnownNames(saved);var known=scope.Party.KnownNames;savedKnownNamesVersion=known.Length==saved.Length&&known.All(n=>saved.Contains(n))?scope.Party.KnownNamesVersion:-1;}catch(Exception ex){nameCacheStatus=" · name cache: "+ex.Message;}
@@ -134,6 +147,7 @@ public partial class MainWindow : Window
         capture.Status+=message=>Dispatcher.BeginInvoke(()=>{if(message.StartsWith("Capture stopped:")||message.StartsWith("TCP gap"))StatusText.Text=message;});
         timer.Tick+=(_,_)=>{Render();CheckAutomatic();SaveKnownNames();SaveDetectedCharacter();}; timer.Start();
         Closed+=(_,_)=>{timer.Stop();capture.Dispose();SaveKnownNames(true);};
+        InitializeWindowPreferences(persistWindowPreferences??persistKnownNames,windowPreferences);
     }
     void SaveDetectedCharacter()
     {
@@ -246,8 +260,8 @@ public partial class MainWindow : Window
         TargetBox.ItemsSource=items.ToArray();
         TargetBox.SelectedItem=items.FirstOrDefault(x=>x.EncounterId==selected?.EncounterId&&x.TargetId==selected?.TargetId)??items[0];
     }
-    void Render(){lock(gate){RenderCharacter();UpdateCaptureButton(autoCapturing);if(autoCapturing)encounters.AdvanceTo(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());var allowed=scope.AllowedActors();UpdateTargets();var view=CurrentView((TargetBox.SelectedItem as TargetChoice)?.TargetId);PlayersGrid.ItemsSource=demo?view.Players:scope.DisplayRows(view.Players);IdentityStatus.Text=demo?"Demo: synthetic data only":scope.Status;Totals.Text=$"{(demo?"DEMO · ":"")}{view.Damage:N0} damage · {view.Damage/Math.Max(1,view.Seconds):N1} DPS · {view.Hits:N0} hits";EncounterTime.Text=SelectedEncounter is {} fight?$"{encounters.State(fight)} · {TimeSpan.FromSeconds(view.Seconds).ToString(@"hh\:mm\:ss")}":"Waiting for combat · 00:00:00";DiagnosticsText.Text=$"Packets {capture.PacketsReceived:N0} · TCP chunks {chunks:N0} · frames {decoder.RecordsFramed:N0} · awaiting identity {attribution.PendingCount:N0} · party updates {scope.Party.PeriodicUpdatesSeen:N0} · names {scope.Identity.Names.Count} · outside-scope hits {scope.ExcludedHits:N0} · malformed {decoder.RejectedRecords:N0} · dropped {capture.DroppedFrames:N0}{nameCacheStatus}{profileSaveStatus}{(targetIdentity.CatalogWarning is {} warning?" · "+warning:"")}";EntityNamesText.Text=string.Join(Environment.NewLine,scope.Identity.Names.OrderBy(p=>p.Value).Take(64).Select(p=>$"{p.Value} · ID {p.Key} · {(allowed.Contains(p.Key)?p.Key==scope.LocalPlayerId?"you":"party":"excluded")} "));}}
-    void TopChanged(object sender,RoutedEventArgs e)=>Topmost=OnTop.IsChecked==true;
+    void Render(){lock(gate){RenderCharacter();UpdateCaptureButton(autoCapturing);if(autoCapturing)encounters.AdvanceTo(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());var allowed=scope.AllowedActors();UpdateTargets();var view=CurrentView((TargetBox.SelectedItem as TargetChoice)?.TargetId);PlayersGrid.ItemsSource=demo?view.Players:scope.DisplayRows(view.Players);CompactPlayers.ItemsSource=PlayersGrid.ItemsSource;IdentityStatus.Text=demo?"Demo: synthetic data only":scope.Status;Totals.Text=$"{(demo?"DEMO · ":"")}{view.Damage:N0} damage · {view.Damage/Math.Max(1,view.Seconds):N1} DPS · {view.Hits:N0} hits";EncounterTime.Text=SelectedEncounter is {} fight?$"{encounters.State(fight)} · {TimeSpan.FromSeconds(view.Seconds).ToString(@"hh\:mm\:ss")}":"Waiting for combat · 00:00:00";DiagnosticsText.Text=$"Packets {capture.PacketsReceived:N0} · TCP chunks {chunks:N0} · frames {decoder.RecordsFramed:N0} · awaiting identity {attribution.PendingCount:N0} · party updates {scope.Party.PeriodicUpdatesSeen:N0} · names {scope.Identity.Names.Count} · outside-scope hits {scope.ExcludedHits:N0} · malformed {decoder.RejectedRecords:N0} · dropped {capture.DroppedFrames:N0}{nameCacheStatus}{profileSaveStatus}{(targetIdentity.CatalogWarning is {} warning?" · "+warning:"")}";EntityNamesText.Text=string.Join(Environment.NewLine,scope.Identity.Names.OrderBy(p=>p.Value).Take(64).Select(p=>$"{p.Value} · ID {p.Key} · {(allowed.Contains(p.Key)?p.Key==scope.LocalPlayerId?"you":"party":"excluded")} "));}}
+    void TopChanged(object sender,RoutedEventArgs e)=>UpdateAlwaysOnTop();
     void DetailsChanged(object sender,RoutedEventArgs e)
     {
         if(DamageColumn is null)return;

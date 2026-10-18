@@ -25,6 +25,7 @@
 **/track-people.json
 **/learned-character-names.json
 **/known-character-names.json
+**/window-preferences.json
 **/*.pcap
 **/*.cap
 **/*.ndjson

@@ -13,6 +13,7 @@ public static class SelfTests
         PartyStartupSelfTests.Run();
         PartyNameStoreSelfTests.Run();
         TrackingProfileSelfTests.Run();
+        WindowPreferencesSelfTests.Run();
         CharacterStatsSelfTests.Run();
         FivePlayerSelfTests.Run();
         EncounterSelfTests.Run();

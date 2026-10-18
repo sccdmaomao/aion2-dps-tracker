@@ -11,7 +11,7 @@
     <Title>Local DPS Tracker</Title>
     <Product>Local DPS Tracker</Product>
     <Description>Local-only party damage and encounter tracking for Aion 2.</Description>
-    <Version>1.0.1</Version>
+    <Version>1.1.0</Version>
     <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
     <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
   </PropertyGroup>

@@ -58,7 +58,12 @@ entries can override or extend the bundled names. See NOTICE.md for attribution.
 
 Use the share icon beside the timer to copy the full party chart to your clipboard.
 Choose a target and fight from the target dropdown. Latest follows new fights automatically.
-Right-click the chart and open Options for export and troubleshooting.
+Click the compact-view icon for a draggable party DPS window that stays on top.
+Drag its DPS header to move it; left-click the percentage dropdown for opacity.
+The restore icon returns to full view and turns always-on-top off. Settings,
+opacity, both sizes and position are remembered locally. Use windowed or
+borderless game mode; exclusive fullscreen can cover desktop windows.
+Left-click Settings in full view for export and troubleshooting.
 
 No account, AionFlex install, telemetry, or automatic uploads. Diagnostic recordings
 are saved only on request and can contain names/identifiers; keep them private.
