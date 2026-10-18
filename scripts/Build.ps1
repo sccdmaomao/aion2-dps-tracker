@@ -51,8 +51,10 @@ arrives during area loading: if your name is missing, keep capture running and
 teleport once. Opening equipment does not resend your identity.
 Or use the optional name field. Names are saved locally across release folders.
 
-The public build has no bulk enemy-name catalog. An optional local target-names.json
-can map NPC template IDs to names. Damage and defeat markers work without names.
+The app includes 6,084 English enemy names for offline use. Keep capture running
+and teleport once to receive NPC spawn mappings. Unknown targets may be absent
+from the catalog or missing a spawn message. Optional local target-names.json
+entries can override or extend the bundled names. See NOTICE.md for attribution.
 
 No account, AionFlex install, telemetry, or automatic uploads. Diagnostic recordings
 are saved only on request and can contain names/identifiers; keep them private.

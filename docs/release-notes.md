@@ -1,14 +1,12 @@
-Local DPS Tracker v0.9.2 improves character-name recovery when capture starts after entering the world.
+Local DPS Tracker v0.9.3 includes enemy names in every Windows download.
 
-- The app now explains how to recover a missed identity message: keep capture running and teleport once. Opening equipment does not resend that message.
-- Detected and manually entered names are saved under %LOCALAPPDATA%\LocalDps, so extracting a new release no longer resets the saved fallback name.
-- Existing profiles beside the executable remain readable when no saved user profile exists. Saved names do not prove party membership or replace the current combat-entity mapping.
-- Added regression tests for profile compatibility, persistence across updates, explicit clearing and size limits.
+- Bundles 6,084 English NPC names from the MIT-licensed taengu/AION2-DPS-Meter catalog, with source attribution and the upstream license in NOTICE.md.
+- Names are embedded in the app and resolved locally. No separate catalog download, account or runtime network request is needed.
+- Existing optional target-names.json files can override or extend bundled names.
+- Added regression checks for a fresh install, local overrides and fallback after invalid custom catalogs.
 
-First-time automatic detection still requires the server's local-character identity message. This update does not identify the local character from arbitrary nearby names.
+Start capturing, then teleport once to receive character identity and NPC spawn mappings. Targets whose spawn message was missed or whose template is absent from the catalog can still display as unknown. Names are English and may differ from your game's language.
 
-Windows x64, .NET 8 Desktop Runtime and Npcap are required separately. Extract the whole ZIP and read START-HERE.txt. No account, AionFlex install, telemetry or automatic uploads.
-
-The public build excludes the bulk third-party enemy-name catalog and accepts an optional local target-names.json instead. Target damage and defeat detection work without it; absent names display entity IDs. Public packages start with blank profiles and contain no real player caches or recordings.
+Windows x64, .NET 8 Desktop Runtime and Npcap are required separately. Extract the whole ZIP and read START-HERE.txt. Public packages start with blank profiles and contain no real player caches or recordings. No telemetry or automatic uploads.
 
 Encounter timing uses a 15-second inactivity rule, including that grace period in DPS. A defeated target does not end the whole encounter automatically. Mid-instance identity/spawn coverage, unsupported party layouts, exact damage accuracy, pets and relay traffic remain provisional.

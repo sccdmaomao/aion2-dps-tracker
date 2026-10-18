@@ -49,11 +49,15 @@ Long boss-phase gaps can split an encounter.
 
 ## Target names
 
-The public build includes the entity-to-template decoder but no bulk enemy-name
-database. Unmapped targets display `Unknown target <entity ID>`; damage and
-defeat detection still work.
+Releases include 6,084 English enemy names, embedded in the app and available
+offline without extra setup. The catalog is adapted from the MIT-licensed
+[taengu/AION2-DPS-Meter catalog](https://github.com/taengu/AION2-DPS-Meter/blob/2fa3c3e186426ff77db81a6608c87030d529ad7c/src/main/resources/i18n/npcs/en.json);
+source details and its license are in [NOTICE.md](NOTICE.md).
+Keep capture running and teleport once to receive NPC spawn/template mappings.
+Unmapped or uncatalogued targets display `Unknown target <entity ID>`; damage and
+defeat detection still work. Names may differ from your game's language.
 
-To supply names, place a UTF-8 `target-names.json` next to `LocalDpsTracker.exe`. It is a
+To override or add names, place a UTF-8 `target-names.json` next to `LocalDpsTracker.exe`. It is a
 JSON object mapping **NPC template IDs**, not changing combat entity IDs, to
 display names. See [the example](examples/target-names.example.json); its IDs and
 names are illustrative, not a real game catalog. Use only data you have permission
