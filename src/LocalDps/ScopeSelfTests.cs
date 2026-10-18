@@ -19,7 +19,7 @@ public static class ScopeSelfTests
         Require(!scope.Party.IsAuthoritative&&!scope.Include(hit with{ActorId=300}),"room roster is not active party proof");
         var meter=new Meter{DisplayName=scope.Label};meter.Add(hit);meter.Add(hit with{ActorId=300,Damage=10000});
         var view=meter.View(allowedActors:scope.AllowedActors());
-        Require(view.Damage==50&&view.Players.Single().Actor=="TestHéro (you)","display and totals exclude unrelated actors");
+        Require(view.Damage==50&&view.Players.Single().Actor=="TestHéro","display and totals exclude unrelated actors");
         scope.Reset();Require(!scope.Include(hit),"connection reset invalidates identity");
         scope.ConfirmedSelfName="Chosen";scope.Observe(Named(0x44,200,"Chosen"),4);
         Require(scope.LocalPlayerId==200,"explicit self name may match one observed entity");
@@ -44,7 +44,7 @@ public static class ScopeSelfTests
         distant.Observe(Named(0x33,200,"勇者"),7);distant.Observe(join,8);
         var idle=distant.DisplayRows(Array.Empty<PlayerRow>());
         Require(idle.Length==2&&idle.All(r=>r.Hits==0&&r.Damage==0&&r.Dps==0),"idle roster displays every detected member with zero totals");
-        Require(idle.Single(r=>r.Actor=="隊友 (party)") is {ActorId:null,Status:"Combat identity not received"},"distant roster member appears without an invented entity ID");
+        Require(idle.Single(r=>r.Actor=="隊友") is {ActorId:null,Status:"Combat identity not received"},"distant roster member appears without an invented entity ID");
         Require(idle.Single(r=>r.ActorId is null).DpsText=="—","unresolved combat identity is unavailable rather than a measured zero");
         distant.BeginChunk();distant.Observe(Named(0x44,400,"隊友"),9);
         Require(distant.Include(hit with{ActorId=400}),"first nearby hit is admitted when an already-confirmed member gets an entity mapping in the same chunk");distant.EndChunk();

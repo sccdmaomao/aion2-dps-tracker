@@ -1,7 +1,8 @@
 using LocalDps.Protocol;
 namespace LocalDps;
-public sealed record PlayerRow(int? ActorId,string Actor,long Damage,double Dps,int Hits,double Share,string Status="")
+public sealed record PlayerRow(int? ActorId,string Actor,long Damage,double Dps,int Hits,double Share,string Status="",int? ItemLevel=null,int? CombatPower=null)
 {
+    public string DisplayActor=>$"{Actor} ({ItemLevel?.ToString("N0")??"—"} / {CombatPower?.ToString("N0")??"—"})";
     public bool DpsAvailable=>ActorId.HasValue;
     public string DpsText=>DpsAvailable?Dps.ToString("N1"):"—";
     public string ShareText=>DpsAvailable?$"{Share:N1}% damage":"—";

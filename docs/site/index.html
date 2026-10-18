@@ -29,7 +29,7 @@
         <p class="eyebrow"><span class="dot"></span> LOCAL ONLY. OPEN SOURCE.</p>
         <h1 id="hero-title">See your DPS.<br><span>Keep it local.</span></h1>
         <p class="intro">A clear view of your party’s damage, DPS, and encounters. Captured and calculated on your own PC.</p>
-        <div class="hero-actions"><a class="button primary" href="https://github.com/sccdmaomao/aion2-dps-tracker/releases/latest"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>Download for Windows</a><a class="text-link" href="https://github.com/sccdmaomao/aion2-dps-tracker">Explore the source <span aria-hidden="true">↗</span></a></div>
+        <div class="hero-actions"><a class="button primary" href="https://github.com/sccdmaomao/aion2-dps-tracker/releases/latest"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></svg>Download v1.0 for Windows</a><a class="text-link" href="https://github.com/sccdmaomao/aion2-dps-tracker">Explore the source <span aria-hidden="true">↗</span></a></div>
         <p class="requirements">Windows x64 · .NET 8 Desktop Runtime · Npcap</p>
         <div class="hero-note"><span class="check" aria-hidden="true">✓</span> No account. No telemetry. No automatic uploads.</div>
       </div>
@@ -40,7 +40,7 @@
           <div class="meter-encounter"><span>Encounter 1 <b>·</b> In combat</span><span>01:24</span></div>
           <p class="meter-total">10.86M damage <span>·</span> 129,319.0 party DPS</p>
           <div class="meter-head"><span>PARTY</span><span>DPS / DAMAGE SHARE</span></div>
-          <div class="meter-player"><div><strong>Aster <span>(you)</span></strong><div class="bar bar-a"></div></div><div class="score"><strong>45,218.6</strong><span>35.0% damage</span></div></div>
+          <div class="meter-player"><div><strong>Aster</strong><div class="bar bar-a"></div></div><div class="score"><strong>45,218.6</strong><span>35.0% damage</span></div></div>
           <div class="meter-player"><div><strong>Ember</strong><div class="bar bar-b"></div></div><div class="score"><strong>36,124.8</strong><span>27.9% damage</span></div></div>
           <div class="meter-player"><div><strong>Moss</strong><div class="bar bar-c"></div></div><div class="score"><strong>28,361.2</strong><span>21.9% damage</span></div></div>
           <div class="meter-player"><div><strong>Rune</strong><div class="bar bar-d"></div></div><div class="score"><strong>19,614.4</strong><span>15.2% damage</span></div></div>
@@ -57,9 +57,9 @@
       <div class="section-heading"><p class="eyebrow">FOCUS ON THE FIGHT</p><h2 id="features-title">The numbers your party needs.</h2><p>One window, the whole party, and a target selector. Capture keeps running while you explore the results.</p></div>
       <div class="features">
         <article><span class="feature-number">01</span><h3>Your party, together</h3><p>See up to five detected members, including idle teammates. Unrelated nearby players stay excluded.</p></article>
-        <article><span class="feature-number">02</span><h3>Damage in context</h3><p>Compare DPS and each player’s percentage of captured party damage. Filter the view to a single target.</p></article>
-        <article><span class="feature-number">03</span><h3>Start with one button</h3><p>Adapter and ports are selected automatically. Your name is detected from game traffic, with an optional fallback field.</p></article>
-        <article><span class="feature-number">04</span><h3>Automatic encounters</h3><p>Timing begins with party damage. Review the latest 50 encounters, or save a selected fight locally.</p></article>
+        <article><span class="feature-number">02</span><h3>Damage in context</h3><p>Compare DPS and each player’s share of captured party damage. See item level and combat power when available, or filter to one target.</p></article>
+        <article><span class="feature-number">03</span><h3>Start with one button</h3><p>Adapter and ports are selected automatically. Your name is detected from game traffic. Start capture, then teleport once to refresh your identity.</p></article>
+        <article><span class="feature-number">04</span><h3>Automatic encounters</h3><p>Timing begins with party damage. Right-click the chart for history and local exports, or use the share icon to copy the full chart to your clipboard.</p></article>
         <article><span class="feature-number">05</span><h3>Know when a target falls</h3><p>A recent positive-to-zero HP update marks a target defeated. Disappearing from view alone isn’t treated as death.</p></article>
         <article><span class="feature-number">06</span><h3>Keep control of your data</h3><p>No process injection or memory reading. Encounter exports and raw diagnostic recordings are saved only when you request them.</p></article>
       </div>
@@ -70,9 +70,9 @@
       <ol class="setup-steps">
         <li><span class="step-number">1</span><div><h3>Install .NET 8 Desktop Runtime</h3><p>Choose the Windows <strong>x64 Desktop Runtime</strong>. You don’t need the developer SDK to run the meter.</p><a class="text-link" href="https://dotnet.microsoft.com/en-us/download/dotnet/8.0">Get the runtime <span aria-hidden="true">↗</span></a></div></li>
         <li><span class="step-number">2</span><div><h3>Install Npcap</h3><p>Npcap provides local packet capture. If the app reports a missing <code>wpcap.dll</code>, enable WinPcap API-compatible mode in the installer.</p><a class="text-link" href="https://npcap.com/#download">Get Npcap <span aria-hidden="true">↗</span></a></div></li>
-        <li><span class="step-number">3</span><div><h3>Extract, launch, capture</h3><p>Extract the entire release ZIP to a writable folder. Open <code>LocalDpsTracker.exe</code>, enter the game, and click <strong>Start capturing</strong>.</p><a class="text-link" href="https://github.com/sccdmaomao/aion2-dps-tracker/releases/latest">Get the latest release <span aria-hidden="true">↗</span></a></div></li>
+        <li><span class="step-number">3</span><div><h3>Extract, launch, capture</h3><p>Extract the entire release ZIP to a writable folder. Open <code>LocalDpsTracker.exe</code>, enter the game, and click the <strong>play icon</strong> beside the encounter timer.</p><a class="text-link" href="https://github.com/sccdmaomao/aion2-dps-tracker/releases/latest">Get the latest release <span aria-hidden="true">↗</span></a></div></li>
       </ol>
-      <p class="setup-tip"><strong>Name not detected?</strong> Keep capture running and teleport once so the server resends your character identity. Opening equipment does not refresh it. You can also enter your name in the optional field; names are remembered locally across updates.</p>
+      <p class="setup-tip"><strong>Name not detected?</strong> Keep capture running and teleport once so the server resends your character identity. Opening equipment does not refresh it. Detected names are remembered locally across updates.</p>
     </div></section>
 
     <section class="section wrap faq-section" id="faq" aria-labelledby="faq-title">

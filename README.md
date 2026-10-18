@@ -10,7 +10,7 @@ uploads, or AionFlex installation required.
 
 **[Download the latest Windows release](https://github.com/sccdmaomao/aion2-dps-tracker/releases/latest)**
 
-![First launch and optional character setup](docs/images/startup.png)
+![First launch and automatic character detection](docs/images/startup.png)
 
 ## Run
 
@@ -18,13 +18,13 @@ uploads, or AionFlex installation required.
 2. Install [Npcap](https://npcap.com/#download). If the app reports a missing
    `wpcap.dll`, enable Npcap's WinPcap API-compatible mode in its installer.
 3. Extract the complete release ZIP to a writable folder and open `LocalDpsTracker.exe`.
-4. Enter Aion 2 and click **Start capturing**. Adapter and game ports are automatic.
+4. Enter Aion 2 and click the **play icon** beside the encounter timer. Adapter and game ports are automatic.
 
 Your character name is detected when the server sends a local-character identity
 message during area loading. If you started capture after entering the world,
 keep it running and teleport once. Opening the equipment window
-does not resend this identity message. You can also use the optional name field.
-Detected names take priority over stale saved names. Your name is remembered in
+does not resend this identity message. Character detection is automatic; there is no manual name entry.
+New identity messages replace stale remembered names. Your name is remembered in
 `%LOCALAPPDATA%\LocalDps\track-people.json` across release folders. This remembers
 the name only; the current combat entity still needs to be mapped from traffic.
 
@@ -32,11 +32,18 @@ the name only; the current combat entity still needs to be mapped from traffic.
 
 - All detected party members, including idle members; up to five players total.
 - Party-only damage, per-player DPS, damage percentage, and damage-share bars.
+- Player labels show `Name (item level / combat power)` from observed identity,
+  character-directory and recruiting-room data. Item level often arrives during
+  teleport; power can arrive separately. Missing values display `—`; stats stay in memory
+  for the current connection and do not establish party membership.
+- Column widths and order are locked; the player column adapts to window width.
 - Target filtering while capture continues for the whole party.
 - Automatic encounter timing and the latest 50 encounters in memory.
 - A target is marked **defeated** after a recent positive-to-zero HP transition.
 - Local encounter exports, optional diagnostic recordings, and offline replay.
-- Keep-on-top and optional damage/hit/share columns under **More**.
+- Icon buttons beside the encounter timer start/stop capture and copy a chart image to the clipboard.
+  The copied image includes the current target, encounter totals and every party row.
+- Right-click the party chart for encounter history, export, keep-on-top, extra columns and troubleshooting.
 
 Damage share is a player's captured damage divided by all captured party damage
 in the selected encounter and target. It is not a percentage of enemy maximum HP.
@@ -70,7 +77,7 @@ Capture starts only when requested. There are no outbound HTTP clients, accounts
 telemetry endpoints, or automatic uploads. The app does not inject into the game
 or read game process memory.
 
-Character fallback: `%LOCALAPPDATA%\LocalDps\track-people.json` (older profiles
+Remembered character: `%LOCALAPPDATA%\LocalDps\track-people.json` (older profiles
 beside the executable are read when no saved profile exists). Learned names:
 `%LOCALAPPDATA%\LocalDps\known-character-names.json`. Neither file grants party
 membership by itself. Saved encounters go to `%LOCALAPPDATA%\LocalDps\encounters`.

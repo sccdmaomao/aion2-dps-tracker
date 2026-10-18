@@ -13,6 +13,7 @@ public static class SelfTests
         PartyStartupSelfTests.Run();
         PartyNameStoreSelfTests.Run();
         TrackingProfileSelfTests.Run();
+        CharacterStatsSelfTests.Run();
         FivePlayerSelfTests.Run();
         EncounterSelfTests.Run();
         Assert(LocalDps.Capture.GameFlowDirection.IsServerToClient("[203.0.113.10]:13328>[192.168.1.10]:55020",new HashSet<int>()),"offline server direction");

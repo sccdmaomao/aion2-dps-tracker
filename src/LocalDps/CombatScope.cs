@@ -6,6 +6,7 @@ public sealed class CombatScope
 {
     public EntityIdentityDecoder Identity {get;}=new();
     public PartyRosterDecoder Party {get;}=new();
+    public CharacterStatsDecoder Statistics {get;}=new();
     private string? confirmedSelfName;
     private int? partySetSelfId;
     private bool partyInferenceInvalidated;
@@ -54,20 +55,21 @@ public sealed class CombatScope
         if(!allowed)ExcludedHits++;return allowed;
     }
     public string Name(int id)=>Identity.Names.TryGetValue(id,out string? name)?name:id==partySetSelfId&&ConfirmedSelfName is not null?ConfirmedSelfName:$"Unknown entity {id}";
-    public string Label(int id)=>Name(id)+(id==LocalPlayerId?" (you)":AllowedActors().Contains(id)?" (party)":"");
+    public string Label(int id)=>Name(id);
     public PlayerRow[] DisplayRows(PlayerRow[] damageRows,int? selectedActor=null)
     {
         var rows=new List<PlayerRow>();
         int? self=LocalPlayerId;
         string? selfName=self.HasValue?Name(self.Value):ConfirmedSelfName;
-        void Add(int? id,string name,string state)
+        void Add(int? id,string name,string state,CharacterStats? stats)
         {
             var damage=id.HasValue?damageRows.FirstOrDefault(r=>r.ActorId==id):null;
             if(selectedActor.HasValue&&id!=selectedActor)state="Outside selected attacker";
             else if(damage is {Hits:>0})state="Damage captured";
-            rows.Add(damage is null?new(id,name,0,0,0,0,state):damage with {Actor=name,Status=state});
+            var row=damage is null?new PlayerRow(id,name,0,0,0,0,state):damage with {Actor=name,Status=state};
+            rows.Add(row with {ItemLevel=stats?.ItemLevel,CombatPower=stats?.CombatPower});
         }
-        if(!string.IsNullOrWhiteSpace(selfName))Add(self,selfName+" (you)",self.HasValue?"No hits captured":"Waiting for your identity");
+        if(!string.IsNullOrWhiteSpace(selfName))Add(self,selfName,self.HasValue?"No hits captured":"Waiting for your identity",Statistics.ForSelf(Identity));
         if(Party.IsAuthoritative)foreach(var member in Party.Members)
         {
             if(member.Name==selfName)continue;
@@ -75,7 +77,7 @@ public sealed class CombatScope
             int? id=matches.Length==1?matches[0].Key:null;
             string state=matches.Length>1?"Ambiguous identity":id.HasValue?"No hits captured":"Combat identity not received";
             if(member.Name=="Unknown party member")state="Waiting for member name";
-            Add(id,member.Name+" (party)",state);
+            Add(id,member.Name,state,Statistics.ForMember(member));
         }
         return rows.OrderByDescending(r=>r.Damage).ToArray();
     }
@@ -83,6 +85,7 @@ public sealed class CombatScope
     public void Observe(ReadOnlySpan<byte> record,long timestamp)
     {
         Identity.Observe(record,timestamp);
+        Statistics.Observe(record,Identity);
         if(Identity.LocalPlayerId is int local&&Identity.Names.TryGetValue(local,out var ownName))ConfirmedSelfName=ownName;
         Party.Observe(record,timestamp);stableChunkMembers?.IntersectWith(CurrentMembers());
         if(partySetSelfId is int inferred&&Identity.Names.TryGetValue(inferred,out var observed)&&observed!=ConfirmedSelfName){partySetSelfId=null;partyInferenceInvalidated=true;partyStatusActors.Clear();}
@@ -117,5 +120,5 @@ public sealed class CombatScope
         if(Identity.Names.TryGetValue(candidate,out var other)&&other!=ConfirmedSelfName)return;
         partySetSelfId=candidate;
     }
-    public void Reset(){Identity.Reset();Party.Reset();ExcludedHits=0;stableChunkMembers=null;partySetSelfId=null;partyInferenceInvalidated=false;partyStatusActors.Clear();previousMembers.Clear();MembershipVersion++;}
+    public void Reset(){Identity.Reset();Statistics.Reset();Party.Reset();ExcludedHits=0;stableChunkMembers=null;partySetSelfId=null;partyInferenceInvalidated=false;partyStatusActors.Clear();previousMembers.Clear();MembershipVersion++;}
 }

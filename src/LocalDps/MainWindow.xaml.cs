@@ -2,6 +2,9 @@ using System.IO;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
+using System.Windows.Controls;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using Microsoft.Win32;
 using LocalDps.Capture;
 using LocalDps.Protocol;
@@ -28,7 +31,6 @@ public partial class MainWindow : Window
     long savedKnownNamesVersion;
     DateTimeOffset lastNamesSave;
     string nameCacheStatus="";
-    bool editingCharacter;
     string savedSelfName="";
     string profileSaveStatus="";
     DateTimeOffset lastProfileSaveAttempt;
@@ -38,15 +40,80 @@ public partial class MainWindow : Window
     bool autoCapturing,noPacketsWarned,connectionWaiting;
     DateTimeOffset captureStarted,lastConnectionCheck;
     string activeConnection="";
+    int shareFeedbackVersion;
+    void UpdateCaptureButton(bool active)
+    {
+        string action=active?"Stop capturing":"Start capturing";
+        StartIcon.Data=(Geometry)FindResource(active?"StopGeometry":"PlayGeometry");
+        System.Windows.Automation.AutomationProperties.SetName(StartButton,action);
+        StartButton.ToolTip=action+"\n"+StatusText.Text;
+    }
+    BitmapSource CreateChartSnapshot()
+    {
+        // Build an independent view so scrolling/selection and active capture
+        // remain untouched, and every party row fits in the copied image.
+        var rows=PlayersGrid.Items.Cast<PlayerRow>().ToArray();
+        var columns=PlayersGrid.Columns.Where(c=>c.Visibility==Visibility.Visible).ToArray();
+        double width=Math.Max(400,columns.Sum(c=>c.ActualWidth));
+        var table=new DataGrid
+        {
+            ItemsSource=rows,AutoGenerateColumns=false,IsReadOnly=true,
+            CanUserAddRows=false,CanUserResizeColumns=false,CanUserReorderColumns=false,
+            EnableRowVirtualization=false,EnableColumnVirtualization=false,
+            HeadersVisibility=DataGridHeadersVisibility.Column,RowHeaderWidth=0,
+            GridLinesVisibility=DataGridGridLinesVisibility.None,BorderThickness=new Thickness(0),
+            Background=Brushes.Transparent,Foreground=Foreground,IsHitTestVisible=false,
+            HorizontalScrollBarVisibility=ScrollBarVisibility.Disabled,
+            VerticalScrollBarVisibility=ScrollBarVisibility.Disabled
+        };
+        table.ColumnHeaderStyle=(Style)FindResource(typeof(System.Windows.Controls.Primitives.DataGridColumnHeader));
+        table.CellStyle=(Style)FindResource(typeof(DataGridCell));
+        table.RowStyle=(Style)FindResource(typeof(DataGridRow));
+        foreach(var column in columns)
+        {
+            DataGridColumn copy=column switch
+            {
+                DataGridTemplateColumn template=>new DataGridTemplateColumn{CellTemplate=template.CellTemplate},
+                DataGridTextColumn text=>new DataGridTextColumn{Binding=text.Binding,ElementStyle=text.ElementStyle},
+                _=>throw new InvalidOperationException("Unsupported chart column.")
+            };
+            copy.Header=column.Header;copy.Width=new DataGridLength(Math.Max(1,column.ActualWidth));table.Columns.Add(copy);
+        }
+        var panel=new StackPanel();
+        panel.Children.Add(new TextBlock{Text=(TargetBox.SelectedItem as FilterChoice)?.Label??"All targets",FontSize=13,Foreground=(Brush)FindResource("Muted"),Margin=new Thickness(16,12,16,4)});
+        panel.Children.Add(new TextBlock{Text=EncounterTime.Text,FontSize=16,FontWeight=FontWeights.SemiBold,Margin=new Thickness(16,0,16,4)});
+        panel.Children.Add(new TextBlock{Text=Totals.Text,FontSize=11,Foreground=(Brush)FindResource("Muted"),Margin=new Thickness(16,0,16,12)});
+        panel.Children.Add(table);
+        var surface=new Border{Width=width,Background=new SolidColorBrush(Color.FromRgb(20,29,44)),Child=panel,Resources=Resources};
+        System.Windows.Documents.TextElement.SetForeground(surface,Foreground);
+        System.Windows.Documents.TextElement.SetFontFamily(surface,FontFamily);
+        surface.Measure(new Size(width,double.PositiveInfinity));surface.Arrange(new Rect(new Point(),surface.DesiredSize));surface.UpdateLayout();
+        var bitmap=new RenderTargetBitmap((int)Math.Ceiling(surface.ActualWidth*2),(int)Math.Ceiling(surface.ActualHeight*2),192,192,PixelFormats.Pbgra32);
+        bitmap.Render(surface);bitmap.Freeze();return bitmap;
+    }
+    async void CopyChartClick(object sender,RoutedEventArgs e)
+    {
+        int version=++shareFeedbackVersion;
+        try
+        {
+            Render();Clipboard.SetImage(CreateChartSnapshot());
+            ShareIcon.Data=(Geometry)FindResource("CopiedGeometry");ShareButton.ToolTip="Damage chart copied";
+        }
+        catch(Exception ex)
+        {
+            ShareIcon.Data=(Geometry)FindResource("CopyErrorGeometry");ShareButton.ToolTip="Could not copy chart: "+ex.Message;
+        }
+        await Task.Delay(2500);
+        if(version!=shareFeedbackVersion)return;
+        ShareIcon.Data=(Geometry)FindResource("ShareGeometry");ShareButton.ToolTip="Copy damage chart to clipboard";
+    }
     public MainWindow(bool persistKnownNames=true,KnownCharacterName[]? rememberedNames=null,TrackingProfile? trackingProfile=null)
     {
         InitializeComponent();
         this.persistKnownNames=persistKnownNames;
         if(rememberedNames is not null)scope.Party.RestoreKnownNames(rememberedNames);
         if(persistKnownNames)try{scope.Party.RestoreKnownNames(PartyNameStore.Load(Path.Combine(AppContext.BaseDirectory,"learned-character-names.json")));var saved=PartyNameStore.Load();scope.Party.RestoreKnownNames(saved);var known=scope.Party.KnownNames;savedKnownNamesVersion=known.Length==saved.Length&&known.All(n=>saved.Contains(n))?scope.Party.KnownNamesVersion:-1;}catch(Exception ex){nameCacheStatus=" · name cache: "+ex.Message;}
-        try{var profile=trackingProfile??TrackingProfile.Load();profile.Apply(scope);SelfNameBox.Text=savedSelfName=profile.SelfName;}catch(Exception ex){StatusText.Text="Character name could not load: "+ex.Message;}
-        SelfNameBox.GotKeyboardFocus+=(_,_)=>editingCharacter=true;
-        SelfNameBox.KeyDown+=(_,e)=>{if(e.Key==System.Windows.Input.Key.Enter){ApplyPeopleClick(SelfNameBox,e);e.Handled=true;}else if(e.Key==System.Windows.Input.Key.Escape){CancelCharacterClick(SelfNameBox,e);e.Handled=true;}};
+        try{var profile=trackingProfile??TrackingProfile.Load();profile.Apply(scope);savedSelfName=profile.SelfName;}catch(Exception ex){StatusText.Text="Character name could not load: "+ex.Message;}
         attribution=new(scope,encounters.Add);
         decoder.IncludeHit=SkillRules.LoadBundled().Include;
         encounters.DisplayName=scope.Label;
@@ -84,15 +151,10 @@ public partial class MainWindow : Window
         string? detected=scope.Identity.LocalPlayerId is int id?scope.Identity.Names.GetValueOrDefault(id):null;
         string? name=detected??scope.ConfirmedSelfName;
         bool hasName=!string.IsNullOrWhiteSpace(name);
-        CharacterNameText.Text=detected is not null?$"{detected} · detected automatically":hasName?$"{name} · saved name":"Detect your character automatically";
-        CharacterEntry.Visibility=editingCharacter||SelfNameBox.IsKeyboardFocusWithin||!hasName?Visibility.Visible:Visibility.Collapsed;
-        ChangeCharacterButton.Visibility=hasName?Visibility.Visible:Visibility.Collapsed;
-        CancelCharacterButton.Visibility=hasName?Visibility.Visible:Visibility.Collapsed;
-        CharacterHelp.Text=detected is not null?"Identified from game traffic. You can leave this field blank to use automatic detection.":hasName?"Your saved name is a fallback when the game identity message is missed.":autoCapturing?"Teleport once while capture is running to detect your character name. Or enter your name above.":"Start capturing, then teleport once to detect your character name. Or enter your name above.";
-        if(!editingCharacter&&!SelfNameBox.IsKeyboardFocusWithin&&SelfNameBox.Text!=(name??""))SelfNameBox.Text=name??"";
+        CharacterNameText.Text=detected is not null?$"{detected} · detected automatically":hasName?$"{name} · waiting for automatic confirmation":"Detect your character automatically";
+        CharacterHelp.Visibility=detected is null?Visibility.Visible:Visibility.Collapsed;
+        CharacterHelp.Text=autoCapturing?"Teleport once while capture is running to detect your character name.":"Start capturing, then teleport once to detect your character name.";
     }
-    void ChangeCharacterClick(object sender,RoutedEventArgs e){editingCharacter=true;lock(gate)RenderCharacter();SelfNameBox.Focus();SelfNameBox.SelectAll();}
-    void CancelCharacterClick(object sender,RoutedEventArgs e){editingCharacter=false;System.Windows.Input.Keyboard.ClearFocus();lock(gate){SelfNameBox.Text=scope.ConfirmedSelfName??"";RenderCharacter();}}
     void SaveKnownNames(bool force=false)
     {
         if(!persistKnownNames||(!force&&DateTimeOffset.UtcNow-lastNamesSave<TimeSpan.FromSeconds(5)))return;
@@ -103,7 +165,7 @@ public partial class MainWindow : Window
         catch(Exception ex){nameCacheStatus=" · name cache: "+ex.Message;}
     }
     void AcceptChunk(byte[] data,DateTimeOffset time,string flow){lock(gate){encounters.AdvanceTo(time.ToUnixTimeMilliseconds());diagnostics.Add(flow,time.ToUnixTimeMilliseconds(),data);scope.BeginChunk();try{if(GameFlowDirection.IsServerToClient(flow,serverPorts))identityRecords.Feed(flow,data,time.ToUnixTimeMilliseconds());decoder.Feed(flow,data,time.ToUnixTimeMilliseconds());attribution.Flush(time.ToUnixTimeMilliseconds());chunks++;}finally{scope.EndChunk();}}}
-    void StopAutomatic(){autoCapturing=false;capture.Stop();lock(gate)encounters.Stop();StartButton.Content="Start capturing";activeConnection="";}
+    void StopAutomatic(){autoCapturing=false;capture.Stop();lock(gate)encounters.Stop();UpdateCaptureButton(false);activeConnection="";}
     void DetectAndCapture()
     {
         var connections=GameConnectionDetection.Find();var devices=PacketCaptureService.ListDevices();
@@ -136,9 +198,9 @@ public partial class MainWindow : Window
         {
             if(replaying) throw new InvalidOperationException("Wait for the current replay to finish.");
             if(autoCapturing){StopAutomatic();StatusText.Text="Stopped. Your encounter is available to save.";return;}
-            capture.Stop();Reset(true);DetectAndCapture();autoCapturing=true;lastConnectionCheck=DateTimeOffset.UtcNow;StartButton.Content="Stop capturing";
+            capture.Stop();Reset(true);DetectAndCapture();autoCapturing=true;lastConnectionCheck=DateTimeOffset.UtcNow;UpdateCaptureButton(true);
         }
-        catch(Exception ex){autoCapturing=false;StartButton.Content="Start capturing";StatusText.Text="Cannot start: "+ex.Message;}
+        catch(Exception ex){autoCapturing=false;UpdateCaptureButton(false);StatusText.Text="Cannot start: "+ex.Message;}
     }
     async void ReplayClick(object sender,RoutedEventArgs e)
     {
@@ -181,7 +243,7 @@ public partial class MainWindow : Window
         var items=new[]{new FilterChoice(null,all)}.Concat(ids.Select(id=>new FilterChoice(id,Label(id)))).ToArray();
         box.ItemsSource=items;box.SelectedItem=items.FirstOrDefault(x=>x.Id==selected)??items[0];
     }
-    void Render(){lock(gate){RenderCharacter();if(autoCapturing)encounters.AdvanceTo(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());var allowed=scope.AllowedActors();UpdateEncounters();UpdateTargets();var view=CurrentView((TargetBox.SelectedItem as FilterChoice)?.Id,demo?null:allowed);PlayersGrid.ItemsSource=demo?view.Players:scope.DisplayRows(view.Players);IdentityStatus.Text=demo?"Demo: synthetic data only":scope.Status;Totals.Text=$"{(demo?"DEMO · ":"")}{view.Damage:N0} damage · {view.Damage/Math.Max(1,view.Seconds):N1} DPS · {view.Hits:N0} hits";EncounterTime.Text=SelectedEncounter is {} fight?$"Encounter {fight.Id} · {encounters.State(fight)} · {TimeSpan.FromSeconds(view.Seconds).ToString(@"hh\:mm\:ss")}":"Waiting for combat · 00:00:00";DiagnosticsText.Text=$"Packets {capture.PacketsReceived:N0} · TCP chunks {chunks:N0} · frames {decoder.RecordsFramed:N0} · awaiting identity {attribution.PendingCount:N0} · party updates {scope.Party.PeriodicUpdatesSeen:N0} · names {scope.Identity.Names.Count} · outside-scope hits {scope.ExcludedHits:N0} · malformed {decoder.RejectedRecords:N0} · dropped {capture.DroppedFrames:N0}{nameCacheStatus}{profileSaveStatus}{(targetIdentity.CatalogWarning is {} warning?" · "+warning:"")}";EntityNamesText.Text=string.Join(Environment.NewLine,scope.Identity.Names.OrderBy(p=>p.Value).Take(64).Select(p=>$"{p.Value} · ID {p.Key} · {(allowed.Contains(p.Key)?p.Key==scope.LocalPlayerId?"you":"party":"excluded")} "));}}
+    void Render(){lock(gate){RenderCharacter();UpdateCaptureButton(autoCapturing);if(autoCapturing)encounters.AdvanceTo(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());var allowed=scope.AllowedActors();UpdateEncounters();UpdateTargets();var view=CurrentView((TargetBox.SelectedItem as FilterChoice)?.Id,demo?null:allowed);PlayersGrid.ItemsSource=demo?view.Players:scope.DisplayRows(view.Players);IdentityStatus.Text=demo?"Demo: synthetic data only":scope.Status;Totals.Text=$"{(demo?"DEMO · ":"")}{view.Damage:N0} damage · {view.Damage/Math.Max(1,view.Seconds):N1} DPS · {view.Hits:N0} hits";EncounterTime.Text=SelectedEncounter is {} fight?$"Encounter {fight.Id} · {encounters.State(fight)} · {TimeSpan.FromSeconds(view.Seconds).ToString(@"hh\:mm\:ss")}":"Waiting for combat · 00:00:00";DiagnosticsText.Text=$"Packets {capture.PacketsReceived:N0} · TCP chunks {chunks:N0} · frames {decoder.RecordsFramed:N0} · awaiting identity {attribution.PendingCount:N0} · party updates {scope.Party.PeriodicUpdatesSeen:N0} · names {scope.Identity.Names.Count} · outside-scope hits {scope.ExcludedHits:N0} · malformed {decoder.RejectedRecords:N0} · dropped {capture.DroppedFrames:N0}{nameCacheStatus}{profileSaveStatus}{(targetIdentity.CatalogWarning is {} warning?" · "+warning:"")}";EntityNamesText.Text=string.Join(Environment.NewLine,scope.Identity.Names.OrderBy(p=>p.Value).Take(64).Select(p=>$"{p.Value} · ID {p.Key} · {(allowed.Contains(p.Key)?p.Key==scope.LocalPlayerId?"you":"party":"excluded")} "));}}
     void TopChanged(object sender,RoutedEventArgs e)=>Topmost=OnTop.IsChecked==true;
     void DetailsChanged(object sender,RoutedEventArgs e)
     {
@@ -198,30 +260,12 @@ public partial class MainWindow : Window
         try{File.WriteAllLines(dialog.FileName,lines);StatusText.Text="Saved local game diagnostic: "+dialog.FileName;}
         catch(Exception ex){StatusText.Text="Diagnostic save failed: "+ex.Message;}
     }
-    void ApplyPeopleClick(object sender,RoutedEventArgs e)
-    {
-        try
-        {
-            var profile=TrackingProfile.Create(SelfNameBox.Text);
-            lock(gate)
-            {
-                if(scope.Identity.LocalPlayerId is int id&&scope.Identity.Names.TryGetValue(id,out var detected))profile=TrackingProfile.Create(detected);
-                if(profile.SelfName!=scope.ConfirmedSelfName){profile.Apply(scope);encounters.Reset();if(autoCapturing)encounters.Start();attribution.Reset();}
-            }
-            editingCharacter=false;System.Windows.Input.Keyboard.ClearFocus();
-            string message=profile.SelfName.Length>0?$"Character set to {profile.SelfName}.":"Automatic character detection enabled. Start capturing, then teleport once to detect your name.";
-            try{if(persistKnownNames)profile.Save();savedSelfName=profile.SelfName;profileSaveStatus="";}
-            catch(Exception ex){message+=" Using it for this session; could not save: "+ex.Message;}
-            SelfNameBox.Text=profile.SelfName;Render();StatusText.Text=message;
-        }
-        catch(Exception ex){StatusText.Text="Cannot update character name: "+ex.Message;}
-    }
     public object CheckRecording(string path,int actor,int target)
     {
         Reset(true);RecordedStreamReplay.Read(path,AcceptChunk);Render();
         TargetBox.SelectedItem=((FilterChoice[])TargetBox.ItemsSource).FirstOrDefault(c=>c.Id==target)??TargetBox.Items[0];Render();
         var rows=PlayersGrid.Items.Cast<PlayerRow>().ToArray();
-        return new{rows=rows.Length,players=rows,hits=rows.Sum(r=>r.Hits),damage=rows.Sum(r=>r.Damage),displayed=Totals.Text,characterDisplay=CharacterNameText.Text,characterEntryVisible=CharacterEntry.Visibility==Visibility.Visible,confirmedSelfName=scope.ConfirmedSelfName,encounter=EncounterInfo(),observedDeaths=targetHealth.Deaths,targetDeaths=meter.TargetIds.Select(DeathFor).Where(d=>d is not null).ToArray(),encounterCount=encounters.Encounters.Count,encounterHistory=encounters.Encounters.Select(e=>new {id=e.Id,damage=e.Meter.TotalDamage,hits=e.Meter.TotalHits,seconds=encounters.Seconds(e),state=encounters.State(e)}).ToArray(),tcpChunks=chunks,localPlayerId=scope.LocalPlayerId,selfProof=scope.SelfProof,observedNames=scope.Identity.Names,scopeStatus=scope.Status,outsideScopeHits=scope.ExcludedHits,identityFrames=identityRecords.RecordsFramed,identityBundles=identityRecords.BundlesDecoded,identityRejected=identityRecords.RejectedRecords,partyCandidateCount=scope.Party.CandidateSnapshotsSeen,partyPeriodicUpdates=scope.Party.PeriodicUpdatesSeen,partyRecoveredAtStartup=scope.Party.RecoveredAtStartup,partyAuthoritative=scope.Party.IsAuthoritative,partyMembers=scope.Party.Members,partyProof=scope.Party.Proof,targets=meter.Targets(allowedActors:demo?null:scope.AllowedActors(),elapsedSeconds:SelectedEncounter is {} selected?encounters.Seconds(selected):0),observedTargetNames=targetIdentity.Names,recommendedAdapter=AdapterSelection.Recommend(PacketCaptureService.ListDevices())?.Description};
+        return new{rows=rows.Length,players=rows,hits=rows.Sum(r=>r.Hits),damage=rows.Sum(r=>r.Damage),displayed=Totals.Text,characterDisplay=CharacterNameText.Text,confirmedSelfName=scope.ConfirmedSelfName,encounter=EncounterInfo(),observedDeaths=targetHealth.Deaths,targetDeaths=meter.TargetIds.Select(DeathFor).Where(d=>d is not null).ToArray(),encounterCount=encounters.Encounters.Count,encounterHistory=encounters.Encounters.Select(e=>new {id=e.Id,damage=e.Meter.TotalDamage,hits=e.Meter.TotalHits,seconds=encounters.Seconds(e),state=encounters.State(e)}).ToArray(),tcpChunks=chunks,localPlayerId=scope.LocalPlayerId,selfProof=scope.SelfProof,observedNames=scope.Identity.Names,scopeStatus=scope.Status,outsideScopeHits=scope.ExcludedHits,identityFrames=identityRecords.RecordsFramed,identityBundles=identityRecords.BundlesDecoded,identityRejected=identityRecords.RejectedRecords,partyCandidateCount=scope.Party.CandidateSnapshotsSeen,partyPeriodicUpdates=scope.Party.PeriodicUpdatesSeen,partyRecoveredAtStartup=scope.Party.RecoveredAtStartup,partyAuthoritative=scope.Party.IsAuthoritative,partyMembers=scope.Party.Members,partyProof=scope.Party.Proof,targets=meter.Targets(allowedActors:demo?null:scope.AllowedActors(),elapsedSeconds:SelectedEncounter is {} selected?encounters.Seconds(selected):0),observedTargetNames=targetIdentity.Names,recommendedAdapter=AdapterSelection.Recommend(PacketCaptureService.ListDevices())?.Description};
     }
     object? EncounterInfo()=>SelectedEncounter is {} fight?new {id=fight.Id,startUnixMs=fight.FirstMs,endUnixMs=encounters.EndMs(fight),lastDamageUnixMs=fight.LastMs,durationSeconds=encounters.Seconds(fight),state=encounters.State(fight),idleTimeoutSeconds=EncounterTracker.IdleTimeoutMs/1000}:null;
     void SaveClick(object sender,RoutedEventArgs e)

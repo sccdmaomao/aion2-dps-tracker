@@ -2,24 +2,42 @@ using System.Buffers.Binary;
 using System.Text;
 namespace LocalDps.Protocol;
 
+internal sealed record RoomCharacterDetails(KnownCharacterName Character,int ItemLevel,int? CombatPower,int? CurrentServerId);
+
 /// <summary>Recruiting-room identities are name metadata only, never membership.</summary>
 internal static class RoomCharacterNames
 {
     private static readonly UTF8Encoding Utf8=new(false,true);
-    public static KnownCharacterName[] Read(ReadOnlySpan<byte> body)
+    public static KnownCharacterName[] Read(ReadOnlySpan<byte> body)=>ReadDetails(body).Select(x=>x.Character).ToArray();
+    public static RoomCharacterDetails[] ReadDetails(ReadOnlySpan<byte> body)
     {
-        if(body.Length<28)return Array.Empty<KnownCharacterName>();
-        int p=5+body[4];if(p+19>body.Length)return Array.Empty<KnownCharacterName>();
-        int slots=body[p];if(slots is <1 or >10)return Array.Empty<KnownCharacterName>();p+=15;
-        if(body[p+3]!=slots)return Array.Empty<KnownCharacterName>();p+=4;
+        if(body.Length<28)return Array.Empty<RoomCharacterDetails>();
+        int p=5+body[4];if(p+19>body.Length)return Array.Empty<RoomCharacterDetails>();
+        int slots=body[p];if(slots is <1 or >10)return Array.Empty<RoomCharacterDetails>();p+=15;
+        if(body[p+3]!=slots)return Array.Empty<RoomCharacterDetails>();p+=4;
         var choices=new byte[slots];var found=new byte[slots];int readings=0;
         Walk(body,p,1,slots,choices,found,ref readings);
-        if(readings!=1)return Array.Empty<KnownCharacterName>();
-        var names=new List<KnownCharacterName>();
+        if(readings!=1)return Array.Empty<RoomCharacterDetails>();
+        var names=new List<RoomCharacterDetails>();
         for(int slot=1;slot<=slots;slot++)
         {
-            int end=SlotEnd(body,p,slot,found[slot-1],out var name);if(end<0)return Array.Empty<KnownCharacterName>();
-            if(name is not null)names.Add(name);p=end;
+            int end=SlotEnd(body,p,slot,found[slot-1],out var name);if(end<0)return Array.Empty<RoomCharacterDetails>();
+            if(name is not null)
+            {
+                int nameEnd=p+11+body[p+10];
+                int gear=BinaryPrimitives.ReadInt32LittleEndian(body[(nameEnd+8)..]);
+                var candidates=new HashSet<(int Server,int Power)>();
+                for(int start=nameEnd+12;start<=nameEnd+14&&start+11<=end;start++)
+                    // This stats block carries the current server, which can
+                    // differ from the character's home server in this slot.
+                    if(BinaryPrimitives.ReadUInt16LittleEndian(body[start..]) is >=1001 and <=3000&&body[start+2]==7&&body[start+3]==0x10&&body[start+4]==4&&body[start+9]==0&&body[start+10]==0)
+                    {
+                        int cp=BinaryPrimitives.ReadInt32LittleEndian(body[(start+5)..]);
+                        if(cp is >0 and <=999999999)candidates.Add((BinaryPrimitives.ReadUInt16LittleEndian(body[start..]),cp));
+                    }
+                names.Add(new(name,gear,candidates.Count==1?candidates.Single().Power:null,candidates.Count==1?candidates.Single().Server:null));
+            }
+            p=end;
         }
         return names.ToArray();
     }
