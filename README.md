@@ -82,7 +82,7 @@ beside the executable are read when no saved profile exists). Learned names:
 `%LOCALAPPDATA%\LocalDps\known-character-names.json`. Neither file grants party
 membership by itself. Saved encounters go to `%LOCALAPPDATA%\LocalDps\encounters`.
 
-**More → Troubleshooting → Save diagnostic recording** explicitly saves raw
+**Right-click chart → Options → Troubleshooting → Save diagnostic recording** explicitly saves raw
 game traffic to a file you select. The in-memory diagnostic ring is bounded to
 two minutes / 16 MiB. Recordings can contain character names and identifiers;
 do not attach them to public issues. Public source and releases contain no real

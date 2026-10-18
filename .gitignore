@@ -12,6 +12,9 @@
 !/scripts/
 !/docs/
 !/examples/
+!/.agents/
+/.agents/*
+!/.agents/skills/
 
 **/bin/
 **/obj/
