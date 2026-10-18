@@ -11,6 +11,7 @@ public sealed class EncounterTracker
     {
         public int Id {get;}=id;
         public Meter Meter {get;}=meter;
+        internal Dictionary<int,PlayerRow> Players {get;}=new();
         public long FirstMs=>Meter.FirstMs!.Value;
         public long LastMs=>Meter.LastMs!.Value;
     }
@@ -21,6 +22,7 @@ public sealed class EncounterTracker
     public bool Running {get;private set;}
     public Func<int,string> DisplayName {get;set;}=id=>$"Unknown entity {id}";
     public Func<int,string> TargetName {get;set;}=id=>$"Unknown target {id}";
+    public Func<PlayerRow[],PlayerRow[]> DescribePlayers {get;set;}=rows=>rows;
     public IReadOnlyList<Encounter> Encounters=>encounters;
     public Encounter? Latest=>encounters.LastOrDefault();
     public void AdvanceTo(long timestampMs){ClockMs=ClockMs.HasValue?Math.Max(ClockMs.Value,timestampMs):timestampMs;}
@@ -40,16 +42,30 @@ public sealed class EncounterTracker
         else
         {
             encounter=matches[0];
-            foreach(var other in matches.Skip(1)){encounter.Meter.Merge(other.Meter);encounters.Remove(other);}
+            foreach(var other in matches.Skip(1))
+            {
+                encounter.Meter.Merge(other.Meter);
+                foreach(var (id,row) in other.Players)encounter.Players.TryAdd(id,row);
+                encounters.Remove(other);
+            }
         }
         encounter.Meter.Add(hit);
+        // Retain metadata when the hit is accepted, before party membership or
+        // transient entity mappings change. These rows never grant capture scope.
+        foreach(var row in DescribePlayers(encounter.Meter.View(actorId:hit.ActorId).Players))
+            if(row.ActorId==hit.ActorId&&row.Hits>0)encounter.Players[hit.ActorId]=row;
         encounters.Sort((a,b)=>a.FirstMs.CompareTo(b.FirstMs));
         while(encounters.Count>HistoryLimit){oldestRetainedMs=encounters[0].LastMs+IdleTimeoutMs;encounters.RemoveAt(0);}
     }
     public long EndMs(Encounter encounter)=>Math.Clamp(ClockMs??encounter.LastMs,encounter.FirstMs,encounter.LastMs+IdleTimeoutMs);
     public double Seconds(Encounter encounter)=>(EndMs(encounter)-encounter.FirstMs)/1000.0;
     public string State(Encounter encounter)=>ClockMs>=encounter.LastMs+IdleTimeoutMs?"Complete":Running?"In combat":"Stopped";
-    public MeterView View(Encounter? encounter,int? targetId=null,IReadOnlySet<int>? allowedActors=null)=>
-        encounter is null?new([],[],0,0,0,null,null):encounter.Meter.View(targetId:targetId,allowedActors:allowedActors,elapsedSeconds:Seconds(encounter));
+    public MeterView View(Encounter? encounter,int? targetId=null,IReadOnlySet<int>? allowedActors=null)
+    {
+        if(encounter is null)return new([],[],0,0,0,null,null);
+        var view=encounter.Meter.View(targetId:targetId,allowedActors:allowedActors,elapsedSeconds:Seconds(encounter));
+        return view with {Players=view.Players.Select(row=>row.ActorId is int id&&encounter.Players.TryGetValue(id,out var saved)
+            ?row with {Actor=saved.Actor,ItemLevel=saved.ItemLevel,CombatPower=saved.CombatPower}:row).ToArray()};
+    }
     public void Reset(){encounters.Clear();nextId=1;oldestRetainedMs=null;ClockMs=null;Running=false;}
 }

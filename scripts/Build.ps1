@@ -57,7 +57,8 @@ from the catalog or missing a spawn message. Optional local target-names.json
 entries can override or extend the bundled names. See NOTICE.md for attribution.
 
 Use the share icon beside the timer to copy the full party chart to your clipboard.
-Right-click the chart and open Options for encounter history, export and troubleshooting.
+Choose a target and fight from the target dropdown. Latest follows new fights automatically.
+Right-click the chart and open Options for export and troubleshooting.
 
 No account, AionFlex install, telemetry, or automatic uploads. Diagnostic recordings
 are saved only on request and can contain names/identifiers; keep them private.

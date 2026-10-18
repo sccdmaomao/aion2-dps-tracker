@@ -43,7 +43,8 @@ the name only; the current combat entity still needs to be mapped from traffic.
 - Local encounter exports, optional diagnostic recordings, and offline replay.
 - Icon buttons beside the encounter timer start/stop capture and copy a chart image to the clipboard.
   The copied image includes the current target, encounter totals and every party row.
-- Right-click the party chart for encounter history, export, keep-on-top, extra columns and troubleshooting.
+- Select a target and fight from the target dropdown; repeated fights stay separate. Latest follows new fights automatically.
+- Right-click the party chart for export, keep-on-top, extra columns and troubleshooting.
 
 Damage share is a player's captured damage divided by all captured party damage
 in the selected encounter and target. It is not a percentage of enemy maximum HP.
@@ -53,6 +54,8 @@ without damage**. That ending grace period counts toward elapsed time and DPS.
 All targets use the encounter clock, with a one-second minimum for DPS division.
 A defeated individual target does not end the whole encounter automatically.
 Long boss-phase gaps can split an encounter.
+Leaving or changing party keeps already recorded contributions, including player
+names, in the chart and encounter exports. Former members' new hits are excluded.
 
 ## Target names
 

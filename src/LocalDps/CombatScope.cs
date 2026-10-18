@@ -79,6 +79,9 @@ public sealed class CombatScope
             if(member.Name=="Unknown party member")state="Waiting for member name";
             Add(id,member.Name,state,Statistics.ForMember(member));
         }
+        // Accepted encounter contributions remain visible after a roster change.
+        // Include() alone decides whether subsequent hits may be recorded.
+        rows.AddRange(damageRows.Where(r=>!rows.Any(current=>current.ActorId==r.ActorId)));
         return rows.OrderByDescending(r=>r.Damage).ToArray();
     }
     public string Status=>LocalPlayerId is not int self?$"Waiting for {(string.IsNullOrWhiteSpace(ConfirmedSelfName)?"your character":ConfirmedSelfName)} identity · {AllowedActors().Count} verified teammate(s) mapped":$"Tracking {Name(self)} · "+(Party.IsAuthoritative?$"Party · {Party.Members.Count(m=>m.Name!=Name(self))} detected · {Math.Max(0,AllowedActors().Count-1)} mapped": "Only you · waiting for a verified party roster");
