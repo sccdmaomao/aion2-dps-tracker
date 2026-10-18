@@ -2,6 +2,8 @@
 
 [![Build and test](https://github.com/sccdmaomao/aion2-dps-tracker/actions/workflows/build.yml/badge.svg)](https://github.com/sccdmaomao/aion2-dps-tracker/actions/workflows/build.yml)
 
+**[Project website](https://sccdmaomao.github.io/aion2-dps-tracker/)** · [Downloads](https://github.com/sccdmaomao/aion2-dps-tracker/releases/latest)
+
 A local-only Windows DPS meter for Aion 2. Passive packet capture, automatic
 game connection detection, and party filtering. No account, telemetry, automatic
 uploads, or AionFlex installation required.
@@ -112,3 +114,9 @@ send it. Pets, relay traffic, and other untested layouts remain provisional.
 
 See [protocol notes](docs/protocol.md), [contributing](CONTRIBUTING.md), and
 [data/dependency notices](NOTICE.md). Original source is [MIT licensed](LICENSE).
+
+## Website
+
+The GitHub Pages site is plain HTML/CSS in `docs/site/`. Changes to that folder
+are deployed by `.github/workflows/pages.yml`. Only the website directory is
+uploaded; source code, local app data, and research files are not part of the site.
