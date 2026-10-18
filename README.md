@@ -1,4 +1,4 @@
-# Local DPS for Aion 2
+# Local DPS Tracker for Aion 2
 
 [![Build and test](https://github.com/sccdmaomao/aion2-dps-tracker/actions/workflows/build.yml/badge.svg)](https://github.com/sccdmaomao/aion2-dps-tracker/actions/workflows/build.yml)
 
@@ -17,7 +17,7 @@ uploads, or AionFlex installation required.
 1. Install [Microsoft .NET 8 Desktop Runtime for Windows x64](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
 2. Install [Npcap](https://npcap.com/#download). If the app reports a missing
    `wpcap.dll`, enable Npcap's WinPcap API-compatible mode in its installer.
-3. Extract the complete release ZIP to a writable folder and open `LocalDps.exe`.
+3. Extract the complete release ZIP to a writable folder and open `LocalDpsTracker.exe`.
 4. Enter Aion 2 and click **Start capturing**. Adapter and game ports are automatic.
 
 Your character name is detected when the server sends a local-character identity
@@ -51,7 +51,7 @@ The public build includes the entity-to-template decoder but no bulk enemy-name
 database. Unmapped targets display `Unknown target <entity ID>`; damage and
 defeat detection still work.
 
-To supply names, place a UTF-8 `target-names.json` next to `LocalDps.exe`. It is a
+To supply names, place a UTF-8 `target-names.json` next to `LocalDpsTracker.exe`. It is a
 JSON object mapping **NPC template IDs**, not changing combat entity IDs, to
 display names. See [the example](examples/target-names.example.json); its IDs and
 names are illustrative, not a real game catalog. Use only data you have permission
@@ -92,7 +92,7 @@ For a build without packaging:
 
 ```powershell
 dotnet build src/LocalDps/LocalDps.csproj -c Release
-$test = Start-Process ./src/LocalDps/bin/Release/net8.0-windows/LocalDps.exe `
+$test = Start-Process ./src/LocalDps/bin/Release/net8.0-windows/LocalDpsTracker.exe `
   -ArgumentList '--self-test' -Wait -PassThru
 if ($test.ExitCode -ne 0) { throw 'Self-tests failed' }
 ```

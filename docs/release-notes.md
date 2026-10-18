@@ -1,10 +1,9 @@
-First public open-source release of Local DPS for Aion 2.
+Local DPS Tracker v0.9.1 makes the project branding consistent across the app, website, documentation and Windows package.
 
-- Automatic adapter/port selection and character identity, with an optional in-app name fallback.
-- Party-only damage/DPS, damage percentages, all detected members and target filtering.
-- Automatic encounter timing/history and positive-to-zero HP defeat markers.
-- Local encounter export, explicit diagnostic save, and offline replay.
-- MIT source, build instructions, synthetic tests, and clean Windows release packaging.
+- App header, window title and executable metadata now say Local DPS Tracker.
+- Launch the app with LocalDpsTracker.exe; release packages now use the LocalDpsTracker prefix.
+- Updated website, setup instructions and app screenshot to match.
+- Existing local settings and name caches remain compatible. Capture and DPS behavior are unchanged.
 
 Windows x64, .NET 8 Desktop Runtime and Npcap are required separately. Extract the whole ZIP and read START-HERE.txt. No account, AionFlex install, telemetry or automatic uploads.
 

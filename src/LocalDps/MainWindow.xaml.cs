@@ -192,7 +192,7 @@ public partial class MainWindow : Window
     {
         string[] lines;lock(gate)lines=diagnostics.Lines();
         if(lines.Length==0){StatusText.Text="Start capturing first; no game traffic is available to save.";return;}
-        var dialog=new SaveFileDialog{Filter="Local diagnostic recording|*.ndjson",FileName="LocalDps-dungeon-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+".ndjson",InitialDirectory=Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)};
+        var dialog=new SaveFileDialog{Filter="Local diagnostic recording|*.ndjson",FileName="LocalDpsTracker-diagnostic-"+DateTime.Now.ToString("yyyyMMdd-HHmmss")+".ndjson",InitialDirectory=Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)};
         if(dialog.ShowDialog()!=true)return;
         try{File.WriteAllLines(dialog.FileName,lines);StatusText.Text="Saved local game diagnostic: "+dialog.FileName;}
         catch(Exception ex){StatusText.Text="Diagnostic save failed: "+ex.Message;}
