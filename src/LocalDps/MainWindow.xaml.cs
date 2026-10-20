@@ -127,6 +127,7 @@ public partial class MainWindow : Window
         encounters.DisplayName=scope.Label;
         encounters.DescribePlayers=rows=>scope.DisplayRows(rows);
         encounters.TargetName=ResolveTarget;
+        encounters.FindTargetDeath=targetHealth.FindDeath;
         identityRecords.RecordObserved+=scope.Observe;
         identityRecords.RecordObserved+=targetIdentity.Observe;
         identityRecords.RecordObserved+=targetHealth.Observe;
@@ -234,10 +235,11 @@ public partial class MainWindow : Window
             RenderCharacter();UpdateCaptureButton(autoCapturing);
             if(autoCapturing)encounters.AdvanceTo(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             UpdateTargets();
-            var view=CurrentView((TargetBox.SelectedItem as TargetChoice)?.TargetId);
+            int? targetId=(TargetBox.SelectedItem as TargetChoice)?.TargetId;
+            var view=CurrentView(targetId);
             PlayersGrid.ItemsSource=scope.DisplayRows(view.Players);CompactPlayers.ItemsSource=PlayersGrid.ItemsSource;
-            Totals.Text=$"{view.Damage:N0} damage · {view.Damage/Math.Max(1,view.Seconds):N1} DPS · {view.Hits:N0} hits";
-            EncounterTime.Text=SelectedEncounter is {} fight?$"{encounters.State(fight)} · {TimeSpan.FromSeconds(view.Seconds).ToString(@"hh\:mm\:ss")}":"Waiting for combat · 00:00:00";
+            Totals.Text=$"{view.Damage:N0} damage · {view.Damage/Math.Max(1,view.Seconds):N0} DPS · {view.Hits:N0} hits";
+            EncounterTime.Text=SelectedEncounter is {} fight?$"{encounters.State(fight,targetId)} · {TimeSpan.FromSeconds(view.Seconds).ToString(@"hh\:mm\:ss")}":"Waiting for combat · 00:00:00";
         }
     }
     public object CheckRecording(string path,int actor,int target)
@@ -245,7 +247,11 @@ public partial class MainWindow : Window
         Reset(true);RecordedStreamReplay.Read(path,AcceptChunk);Render();
         TargetBox.SelectedItem=((TargetChoice[])TargetBox.ItemsSource).FirstOrDefault(c=>c.EncounterId==encounters.Latest?.Id&&c.TargetId==target)??TargetBox.Items[0];Render();
         var rows=PlayersGrid.Items.Cast<PlayerRow>().ToArray();
-        return new{rows=rows.Length,players=rows,hits=rows.Sum(r=>r.Hits),damage=rows.Sum(r=>r.Damage),displayed=Totals.Text,characterDisplay=CharacterNameText.Text,confirmedSelfName=scope.ConfirmedSelfName,encounter=EncounterInfo(),observedDeaths=targetHealth.Deaths,targetDeaths=meter.TargetIds.Select(DeathFor).Where(d=>d is not null).ToArray(),encounterCount=encounters.Encounters.Count,encounterHistory=encounters.Encounters.Select(e=>new {id=e.Id,damage=e.Meter.TotalDamage,hits=e.Meter.TotalHits,seconds=encounters.Seconds(e),state=encounters.State(e)}).ToArray(),tcpChunks=chunks,localPlayerId=scope.LocalPlayerId,selfProof=scope.SelfProof,observedNames=scope.Identity.Names,scopeStatus=scope.Status,outsideScopeHits=scope.ExcludedHits,identityFrames=identityRecords.RecordsFramed,identityBundles=identityRecords.BundlesDecoded,identityRejected=identityRecords.RejectedRecords,partyCandidateCount=scope.Party.CandidateSnapshotsSeen,partyPeriodicUpdates=scope.Party.PeriodicUpdatesSeen,partyRecoveredAtStartup=scope.Party.RecoveredAtStartup,partyAuthoritative=scope.Party.IsAuthoritative,partyMembers=scope.Party.Members,partyProof=scope.Party.Proof,targets=meter.Targets(elapsedSeconds:SelectedEncounter is {} selected?encounters.Seconds(selected):0),observedTargetNames=targetIdentity.Names,recommendedAdapter=AdapterSelection.Recommend(PacketCaptureService.ListDevices())?.Description};
+        return new{rows=rows.Length,players=rows,hits=rows.Sum(r=>r.Hits),damage=rows.Sum(r=>r.Damage),displayed=Totals.Text,characterDisplay=CharacterNameText.Text,confirmedSelfName=scope.ConfirmedSelfName,encounter=EncounterInfo(),observedDeaths=targetHealth.Deaths,targetDeaths=meter.TargetIds.Select(DeathFor).Where(d=>d is not null).ToArray(),encounterCount=encounters.Encounters.Count,encounterHistory=encounters.Encounters.Select(e=>new {id=e.Id,damage=e.Meter.TotalDamage,hits=e.Meter.TotalHits,seconds=encounters.Seconds(e),state=encounters.State(e)}).ToArray(),tcpChunks=chunks,localPlayerId=scope.LocalPlayerId,selfProof=scope.SelfProof,observedNames=scope.Identity.Names,scopeStatus=scope.Status,outsideScopeHits=scope.ExcludedHits,identityFrames=identityRecords.RecordsFramed,identityBundles=identityRecords.BundlesDecoded,identityRejected=identityRecords.RejectedRecords,partyCandidateCount=scope.Party.CandidateSnapshotsSeen,partyPeriodicUpdates=scope.Party.PeriodicUpdatesSeen,partyRecoveredAtStartup=scope.Party.RecoveredAtStartup,partyAuthoritative=scope.Party.IsAuthoritative,partyMembers=scope.Party.Members,partyProof=scope.Party.Proof,targets=meter.TargetIds.Select(id=>{var view=CurrentView(id);return new TargetRow(id,ResolveTarget(id),view.Damage,view.Damage/Math.Max(1,view.Seconds),view.Hits,view.Seconds);}).OrderByDescending(t=>t.Damage).ToArray(),observedTargetNames=targetIdentity.Names,recommendedAdapter=AdapterSelection.Recommend(PacketCaptureService.ListDevices())?.Description};
     }
-    object? EncounterInfo()=>SelectedEncounter is {} fight?new {id=fight.Id,startUnixMs=fight.FirstMs,endUnixMs=encounters.EndMs(fight),lastDamageUnixMs=fight.LastMs,durationSeconds=encounters.Seconds(fight),state=encounters.State(fight),idleTimeoutSeconds=EncounterTracker.IdleTimeoutMs/1000}:null;
+    object? EncounterInfo()
+    {
+        int? targetId=(TargetBox.SelectedItem as TargetChoice)?.TargetId;
+        return SelectedEncounter is {} fight?new {id=fight.Id,startUnixMs=fight.FirstMs,endUnixMs=encounters.EndMs(fight,targetId),lastDamageUnixMs=fight.LastMs,durationSeconds=encounters.Seconds(fight,targetId),state=encounters.State(fight,targetId),idleTimeoutSeconds=EncounterTracker.IdleTimeoutMs/1000}:null;
+    }
 }

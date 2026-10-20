@@ -7,6 +7,7 @@ public static class SelfTests
         LocalDps.Capture.CaptureSelfTests.Run();
         LocalDps.Capture.AdapterSelection.SelfTest();
         LocalDps.Protocol.ProtocolSelfTests.Run();
+        LocalDps.Protocol.ChainedCombatSelfTests.Run();
         PipelineSelfTests.Run();
         ScopeSelfTests.Run();
         PartyProtocolSelfTests.Run();
@@ -17,6 +18,7 @@ public static class SelfTests
         CharacterStatsSelfTests.Run();
         FivePlayerSelfTests.Run();
         EncounterSelfTests.Run();
+        EncounterDefeatSelfTests.Run();
         Assert(LocalDps.Capture.GameFlowDirection.IsServerToClient("[203.0.113.10]:13328>[192.168.1.10]:55020",new HashSet<int>()),"offline server direction");
         Assert(!LocalDps.Capture.GameFlowDirection.IsServerToClient("[192.168.1.10]:55020>[203.0.113.10]:13328",new HashSet<int>{13328}),"outgoing identity excluded");
         Assert(!LocalDps.Capture.GameFlowDirection.IsServerToClient("invalid",new HashSet<int>{13328}),"malformed flow excluded");

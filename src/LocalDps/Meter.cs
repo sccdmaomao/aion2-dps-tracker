@@ -4,7 +4,7 @@ public sealed record PlayerRow(int? ActorId,string Actor,long Damage,double Dps,
 {
     public string DisplayActor=>$"{Actor} ({ItemLevel?.ToString("N0")??"—"} / {CombatPower?.ToString("N0")??"—"})";
     public bool DpsAvailable=>ActorId.HasValue;
-    public string DpsText=>DpsAvailable?Dps.ToString("N1"):"—";
+    public string DpsText=>DpsAvailable?Dps.ToString("N0"):"—";
     public string ShareText=>DpsAvailable?$"{Share:N1}% damage":"—";
 }
 public sealed record SkillRow(int ActorId,int SkillId,long Damage,int Hits);

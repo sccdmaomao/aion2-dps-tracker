@@ -109,41 +109,73 @@ public sealed class GameProtocolDecoder
         }
         try
         {
-            CombatHit? hit = code switch { 4 => Direct(record,ref p,time), 5=>Dot(record,ref p,time,declared), _=>null };
-            if(hit is not null)
+            if(code==4)
             {
-                if((IsDamageSkill?.Invoke(hit.SkillId) ?? true) && (IncludeHit?.Invoke(hit) ?? true)){output.Add(hit);HitDecoded?.Invoke(hit);}
-                else FilteredHits++;
+                // Continuations share the enclosing record's timestamp, not its
+                // actor/skill. Only walk the next boundary; never scan a trailer.
+                for(int count=0;count<64;count++)
+                {
+                    var hit=Direct(record,ref p,time);
+                    if(hit is null) break;
+                    Emit(hit,output);
+                    if(!IsDirectContinuation(record,p,time)) break;
+                    p+=2;
+                }
             }
+            else if(code==5 && Dot(record,ref p,time,declared) is {} periodic) Emit(periodic,output);
         }
         catch(InvalidDataException) { RejectedRecords++; Reject("truncated-combat-record"); }
     }
 
-    private CombatHit? Reject(string reason){rejectionReasons[reason]=rejectionReasons.GetValueOrDefault(reason)+1;return null;}
-    private CombatHit? Direct(ReadOnlySpan<byte> data,ref int p,long time)
+    private void Emit(CombatHit hit,List<CombatHit> output)
     {
+        if((IsDamageSkill?.Invoke(hit.SkillId) ?? true) && (IncludeHit?.Invoke(hit) ?? true)){output.Add(hit);HitDecoded?.Invoke(hit);}
+        else FilteredHits++;
+    }
+
+    private bool IsDirectContinuation(ReadOnlySpan<byte> record,int offset,long time)
+    {
+        if(offset+2>=record.Length || record[offset]!=1 || record[offset+1]!=0) return false;
+        int next=offset+2;
+        // A marker alone can also be the ordinary 1,0 tail. Require a whole
+        // decodable hit before reserving these bytes as a continuation marker.
+        // Probing has no counters, callbacks, filters or recursive chain walk.
+        try { return Direct(record,ref next,time,probe:true) is not null; }
+        catch(InvalidDataException) { return false; }
+    }
+
+    private CombatHit? Reject(string reason){rejectionReasons[reason]=rejectionReasons.GetValueOrDefault(reason)+1;return null;}
+    private CombatHit? Direct(ReadOnlySpan<byte> data,ref int p,long time,bool probe=false)
+    {
+        CombatHit? Invalid(string reason)=>probe?null:Reject(reason);
         int target=Read(data,ref p), sw=Read(data,ref p);
-        if((sw&15)<4) return Reject("non-damage-switch");
+        if((sw&15)<4) return Invalid("non-damage-switch");
+        if(probe&&(sw&15)>7) return null;
         _=Read(data,ref p); int actor=Read(data,ref p);
         if(p+5>data.Length) throw new InvalidDataException();
         int skill=BinaryPrimitives.ReadInt32LittleEndian(data[p..]); int counter=data[p+4]; p+=5;
         int type=Read(data,ref p);
-        if(type is 36 or 37 or 39 or 40 or 41 or 42) return Reject("no-damage-outcome");
+        if(type is 36 or 37 or 39 or 40 or 41 or 42) return Invalid("no-damage-outcome");
         int flags=p, mode=sw&3, width=mode switch { 0=>8, 1=>13, 3=>15, _=>0 };
         if(mode==2) { int q=p+1; _=Read(data,ref q); width=10+q-(p+1); }
         if(p+width>data.Length) throw new InvalidDataException(); p+=width;
         _=Read(data,ref p); int damage=Read(data,ref p);
-        int loop= p<data.Length ? Read(data,ref p):0;
+        int loop= p<data.Length && (probe||!IsDirectContinuation(data,p,time)) ? Read(data,ref p):0;
         long extra=0;
-        if(p<data.Length)
+        if(p<data.Length && (probe||!IsDirectContinuation(data,p,time)))
         {
             int count=Read(data,ref p);
-            if(count is >=1 and <=10) for(int i=0;i<count && p<data.Length;i++) { int part=Read(data,ref p); if(part is >0 and <10_000_000) extra+=part; }
+            if(probe&&count>10) return null;
+            if(count is >=1 and <=10) for(int i=0;i<count;i++)
+            {
+                if(p>=data.Length){if(probe)return null;break;}
+                int part=Read(data,ref p); if(part is >0 and <10_000_000) extra+=part;
+            }
         }
-        if(loop==0 && BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(flags+width-4,4))>16) return Reject("phantom-flags");
-        if(actor<100 || target<=0 || actor==target) return Reject("invalid-or-self-entity");
-        if(damage<=0 || damage>10_000_000) return Reject("invalid-damage-magnitude");
-        if(type>72 || !PlausibleSkill(skill)) return Reject("invalid-skill-or-outcome");
+        if(loop==0 && BinaryPrimitives.ReadUInt32LittleEndian(data.Slice(flags+width-4,4))>16) return Invalid("phantom-flags");
+        if(actor<100 || target<=0 || actor==target) return Invalid("invalid-or-self-entity");
+        if(damage<=0 || damage>10_000_000) return Invalid("invalid-damage-magnitude");
+        if(type>72 || !PlausibleSkill(skill)) return Invalid("invalid-skill-or-outcome");
         return new(time,actor,target,skill,damage+extra,false,counter);
     }
 

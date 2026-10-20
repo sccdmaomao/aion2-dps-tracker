@@ -50,10 +50,13 @@ the name only; the current combat entity still needs to be mapped from traffic.
 Damage share is a player's captured damage divided by all captured party damage
 in the selected encounter and target. It is not a percentage of enemy maximum HP.
 
-An encounter starts on the first verified party hit and finishes after **15 seconds
-without damage**. That ending grace period counts toward elapsed time and DPS.
-All targets use the encounter clock, with a one-second minimum for DPS division.
-A defeated individual target does not end the whole encounter automatically.
+An encounter starts on the first verified party hit. A confirmed target death
+immediately freezes that target's timer and DPS; all-target totals freeze when
+every captured target is defeated. Other living targets continue independently.
+Without confirmed death, the fallback is **15 seconds without damage**, including
+that ending grace period. Targets share the encounter start, with a one-second
+minimum for DPS division. DPS is displayed as a whole number; calculations retain
+full precision. Capture stays active for the next fight.
 Long boss-phase gaps can split an encounter.
 Leaving or changing party keeps already recorded contributions, including player
 names, in the chart and copied images. Former members' new hits are excluded.

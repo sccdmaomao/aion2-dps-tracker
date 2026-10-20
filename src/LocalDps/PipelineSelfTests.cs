@@ -10,7 +10,8 @@ public static class PipelineSelfTests
         // Exercise the actual PCAP reader -> Ethernet/TCP -> decoder -> meter chain.
         byte[] Var(int n){var b=new List<byte>();do{byte v=(byte)(n&127);n>>=7;b.Add((byte)(v|(n>0?128:0)));}while(n>0);return b.ToArray();}
         var body=new List<byte>{4,0x38};body.AddRange(Var(200));body.AddRange(new byte[]{4,0});body.AddRange(Var(100));body.AddRange(BitConverter.GetBytes(11010001));body.AddRange(new byte[]{1,0});body.AddRange(new byte[8]);body.Add(0);body.AddRange(Var(1234));body.AddRange(new byte[]{1,0});
-        var record=Var(body.Count+4).Concat(body).ToArray();
+        var chainedBody=body.Concat(new byte[]{1,0}).Concat(body.Skip(2)).ToArray();
+        var record=Var(chainedBody.Length+4).Concat(chainedBody).ToArray();
         byte[] Frame(uint seq, ReadOnlySpan<byte> payload, byte flags=0x10)
         {
             var f=new byte[54+payload.Length];f[12]=8;f[14]=0x45;f[23]=6;
@@ -34,7 +35,7 @@ public static class PipelineSelfTests
             using var service=new PacketCaptureService();var decoder=new GameProtocolDecoder{IncludeHit=SkillRules.LoadBundled().Include};var meter=new Meter();
             service.StreamChunk+=(data,time,flow)=>{foreach(var hit in decoder.Feed(flow,data,time.ToUnixTimeMilliseconds()))meter.Add(hit);};
             service.ReplayPcap(path);
-            if(meter.TotalHits!=1||meter.TotalDamage!=1234||service.PacketsReceived!=4)throw new Exception("PCAP pipeline/retransmission totals failed");
+            if(meter.TotalHits!=2||meter.TotalDamage!=2468||service.PacketsReceived!=4)throw new Exception("Chained PCAP pipeline/retransmission totals failed");
         }
         finally{if(File.Exists(path))File.Delete(path);}
         // Deterministic malformed-input smoke: packet and stream parsers must stay bounded and not throw.

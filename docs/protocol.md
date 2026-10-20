@@ -43,6 +43,26 @@ Direct `04 38`, periodic `05 38` and batch `3D 38` are decoded with explicit
 bounds. Numeric exclusions filter known non-damage/healing effects; unknown
 skills are retained, so accuracy remains provisional.
 
+Direct records can now walk `01 00` continuation markers at the next parsed
+tail boundary, including immediately after damage or its leading tail field.
+Each continuation must pass a side-effect-free probe using the existing direct
+hit layout, numeric bounds and supported complete extra-hit count (0 through 10).
+A terminal `01 00` alone is still an ordinary tail. The decoder never searches
+unknown trailers for embedded markers; invalid leading hits stop the walk, and
+a malformed continuation does not discard preceding hits. At most 64 hits are
+decoded per direct record. Each hit retains its own actor, target, skill and
+counter, inherits the enclosing timestamp, and independently passes skill and
+verified-party filtering. Existing damage aggregation, framing and timing rules
+are unchanged.
+
+The continuation marker is a protocol lead from the
+[A2Tools parser comparison](https://github.com/taengu/A2Tools-DPS-Meter/blob/08b249d49ef18be9ac9b41d8dd35596ae99aacfd/src-tauri/src/capture/stream_processor.rs#L1443).
+This implementation extends this repository's existing parser and uses invented
+fixtures; no upstream implementation or capture fixtures were copied. Existing
+private recordings did not reproduce a validated chained hit, so synthetic
+coverage establishes parser behavior, not parity with the game's combat analysis.
+A fresh paired encounter is still needed to measure recovered damage in game.
+
 NPC spawns `40/41/42 36` bind combat entities to template IDs. The public build
 ships no bulk name table; an optional local catalog maps templates to names.
 
@@ -52,7 +72,16 @@ within 30 seconds establishes a defeat marker. Zero without a prior positive
 reading is unconfirmed. A 250 ms receive-time skew allows a final hit delivered
 just after zero HP; later positive HP prevents old-life reuse. `42 36` removal
 alone is not a death signal. HP values above 500,000,000 and other layouts are
-unsupported. Defeat markers do not change the 15-second encounter idle rule.
+unsupported. A confirmed defeat freezes that target's displayed timer and DPS
+at the zero-HP timestamp. All-target totals freeze when every captured target
+in the fight has a confirmed death; other living targets continue independently.
+Durations retain the shared encounter start and a one-second DPS denominator
+floor. The existing 250 ms final-hit skew can add killing damage without extending
+the frozen timer; a confirmed new life starts a new fight. A new target after a
+fully defeated fight also starts a fresh fight inside the idle window. When no
+death is confirmed, the 15-second idle rule remains the fallback. Packet capture
+stays active for subsequent fights. DPS is rounded to whole numbers for display
+only; calculations retain their full precision.
 
 ## Validation scope
 
