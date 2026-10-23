@@ -86,6 +86,7 @@ public partial class MainWindow : Window
         panel.Children.Add(new TextBlock{Text=EncounterTime.Text,FontSize=16,FontWeight=FontWeights.SemiBold,Margin=new Thickness(16,0,16,4)});
         panel.Children.Add(new TextBlock{Text=Totals.Text,FontSize=11,Foreground=(Brush)FindResource("Muted"),Margin=new Thickness(16,0,16,12)});
         panel.Children.Add(table);
+        if(rows.Any(row=>row.HasClass))panel.Children.Add(new TextBlock{Text="Class emblems © NC Corporation. Unofficial fan tool.",FontSize=9,Foreground=(Brush)FindResource("Muted"),Margin=new Thickness(16,8,16,10)});
         var surface=new Border{Width=width,Background=new SolidColorBrush(Color.FromRgb(20,29,44)),Child=panel,Resources=Resources};
         System.Windows.Documents.TextElement.SetForeground(surface,Foreground);
         System.Windows.Documents.TextElement.SetFontFamily(surface,FontFamily);

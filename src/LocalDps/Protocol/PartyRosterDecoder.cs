@@ -18,6 +18,13 @@ public sealed class PartyRosterDecoder
     private readonly CharacterNameDirectory directory=new();
     private readonly Dictionary<(ulong Character,int Server),uint> recovered=new();
     private bool recoveryBlocked;
+    public uint? ClassForMember(PartyMemberIdentity member)
+    {
+        if(!IsAuthoritative||!Members.Contains(member)||member.CharacterId is not ulong character||member.ServerId is not int server)return null;
+        var matches=directory.KnownNames.Where(n=>n.CharacterId==character&&n.ServerId==server&&n.Name==member.Name)
+            .Select(n=>n.ClassId).Distinct().Take(2).ToArray();
+        return matches.Length==1?matches[0]:null;
+    }
     public KnownCharacterName[] KnownNames=>directory.KnownNames;
     public long KnownNamesVersion=>directory.Version;
     public void RestoreKnownNames(IEnumerable<KnownCharacterName> names)

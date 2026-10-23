@@ -32,6 +32,19 @@ current peers are independently mapped and the bounded `0E 92` actor set has
 exactly those four actors plus one remaining actor, with own persistent-name
 metadata already known. Contradictory names invalidate the inference.
 
+Player rows retain the raw roster/directory class ID as display metadata. Self
+uses the anchored local-character job field; peers use identity-checked room or
+directory records, or a unique learned class matching a current party member's
+persistent ID, home server and name. Conflicting cache classes remain unavailable.
+The observed roster encoding groups the eight supported classes into four-value
+blocks from 5 through 36 (Gladiator, Templar, Ranger, Assassin, Spiritmaster,
+Sorcerer, Cleric, Chanter), as documented in the
+[reference roster observations](https://github.com/taengu/A2Tools-DPS-Meter/blob/08b249d49ef18be9ac9b41d8dd35596ae99aacfd/src-tauri/src/entity/job_class.rs#L44).
+These are not damage-skill prefixes. Unsupported IDs
+show no icon. Official NC class emblems are embedded for offline display, with class-name tooltips,
+and do not grant capture scope. Accepted encounter rows preserve their class after
+party changes along with their captured names and equipment stats.
+
 Up to two minutes of unresolved full-party candidate hits can be held in a
 bounded queue. They count only after identity proof, within the same membership
 epoch. Late hits are assigned to encounters by event timestamps and may merge

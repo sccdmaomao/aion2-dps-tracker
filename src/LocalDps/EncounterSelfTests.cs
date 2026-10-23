@@ -39,12 +39,12 @@ public static class EncounterSelfTests
         tracker.Reset();Assert(tracker.Latest is null&&tracker.ClockMs is null&&!tracker.Running,"clear resets clock and history");
         string observedName="Teammate";
         tracker.DisplayName=_=>observedName;
-        tracker.DescribePlayers=rows=>rows.Select(r=>r with {ItemLevel=2500,CombatPower=125000}).ToArray();
+        tracker.DescribePlayers=rows=>rows.Select(r=>r with {ItemLevel=2500,CombatPower=125000,ClassId=34}).ToArray();
         tracker.Add(Hit(0,1));tracker.Add(Hit(20000,2));
         observedName="Reused entity";
         tracker.Add(Hit(10000,3));
         var saved=tracker.View(tracker.Latest).Players;
-        Assert(saved.Single(r=>r.ActorId==1) is {Actor:"Teammate",ItemLevel:2500,CombatPower:125000}
+        Assert(saved.Single(r=>r.ActorId==1) is {Actor:"Teammate",ItemLevel:2500,CombatPower:125000,ClassId:34}
             &&saved.Single(r=>r.ActorId==2).Actor=="Teammate","merged history retains captured names and stats despite later entity mapping changes");
     }
 }

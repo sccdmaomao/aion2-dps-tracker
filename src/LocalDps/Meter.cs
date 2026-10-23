@@ -1,7 +1,11 @@
 using LocalDps.Protocol;
 namespace LocalDps;
-public sealed record PlayerRow(int? ActorId,string Actor,long Damage,double Dps,int Hits,double Share,string Status="",int? ItemLevel=null,int? CombatPower=null)
+public sealed record PlayerRow(int? ActorId,string Actor,long Damage,double Dps,int Hits,double Share,string Status="",int? ItemLevel=null,int? CombatPower=null,uint? ClassId=null)
 {
+    public string ClassName=>PlayerClasses.ForRosterId(ClassId).Name;
+    public bool HasClass=>PlayerClasses.ForRosterId(ClassId).Image is not null;
+    [System.Text.Json.Serialization.JsonIgnore]
+    public System.Windows.Media.ImageSource? ClassIconImage=>PlayerClasses.ForRosterId(ClassId).Image;
     public string DisplayActor=>$"{Actor} ({ItemLevel?.ToString("N0")??"—"} / {CombatPower?.ToString("N0")??"—"})";
     public bool DpsAvailable=>ActorId.HasValue;
     public string DpsText=>DpsAvailable?Dps.ToString("N0"):"—";

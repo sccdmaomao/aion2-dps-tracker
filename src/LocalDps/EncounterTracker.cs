@@ -89,7 +89,7 @@ public sealed class EncounterTracker
         if(encounter is null)return new([],[],0,0,0,null,null);
         var view=encounter.Meter.View(targetId:targetId,allowedActors:allowedActors,elapsedSeconds:Seconds(encounter,targetId));
         return view with {Players=view.Players.Select(row=>row.ActorId is int id&&encounter.Players.TryGetValue(id,out var saved)
-            ?row with {Actor=saved.Actor,ItemLevel=saved.ItemLevel,CombatPower=saved.CombatPower}:row).ToArray()};
+            ?row with {Actor=saved.Actor,ItemLevel=saved.ItemLevel,CombatPower=saved.CombatPower,ClassId=saved.ClassId}:row).ToArray()};
     }
     public void Reset(){encounters.Clear();nextId=1;oldestRetainedMs=null;ClockMs=null;Running=false;}
 }

@@ -46,6 +46,14 @@ public static class ScopeSelfTests
         Require(idle.Length==2&&idle.All(r=>r.Hits==0&&r.Damage==0&&r.Dps==0),"idle roster displays every detected member with zero totals");
         Require(idle.Single(r=>r.Actor=="隊友") is {ActorId:null,Status:"Combat identity not received"},"distant roster member appears without an invented entity ID");
         Require(idle.Single(r=>r.ActorId is null).DpsText=="—","unresolved combat identity is unavailable rather than a measured zero");
+        Require(idle.Single(r=>r.ActorId is null).ClassId==9,"distant verified member retains roster class without combat entity");
+        var classConflict=new CombatScope();classConflict.Observe(join,8);
+        var classMember=classConflict.Party.Members.Single();
+        classConflict.Party.RestoreKnownNames(new[]{new KnownCharacterName(classMember.CharacterId!.Value,classMember.ServerId!.Value,13,classMember.Name)});
+        Require(classConflict.Party.ClassForMember(classMember) is null,"conflicting class cache cannot guess peer class");
+        classConflict.Reset();
+        Require(classConflict.Party.ClassForMember(classMember) is null,"retained name/class cache cannot establish current membership");
+        Require(!new PlayerRow(null,"Future",0,0,0,0,ClassId:99).HasClass,"unsupported class ID does not display a guessed icon");
         distant.BeginChunk();distant.Observe(Named(0x44,400,"隊友"),9);
         Require(distant.Include(hit with{ActorId=400}),"first nearby hit is admitted when an already-confirmed member gets an entity mapping in the same chunk");distant.EndChunk();
         var partyMeter=new Meter();partyMeter.Add(hit with{ActorId=400});

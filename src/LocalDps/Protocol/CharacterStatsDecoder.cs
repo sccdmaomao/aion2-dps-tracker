@@ -2,7 +2,7 @@ using System.Buffers.Binary;
 using System.Text;
 namespace LocalDps.Protocol;
 
-public sealed record CharacterStats(int? ItemLevel,int? CombatPower);
+public sealed record CharacterStats(int? ItemLevel,int? CombatPower,uint? ClassId=null);
 
 /// <summary>Session-only stats; these observations never grant party membership.</summary>
 public sealed class CharacterStatsDecoder
@@ -15,7 +15,7 @@ public sealed class CharacterStatsDecoder
     {
         CharacterStats? social=DirectoryStats(member.Name,member.CharacterId,member.ServerId,null,null);
         if(member.CharacterId is ulong character&&member.ServerId is int server&&room.TryGetValue((character,server),out var found)&&found.Character.Name==member.Name)
-            return new(found.ItemLevel>0?found.ItemLevel:social?.ItemLevel,found.CombatPower??social?.CombatPower);
+            return new(found.ItemLevel>0?found.ItemLevel:social?.ItemLevel,found.CombatPower??social?.CombatPower,found.Character.ClassId);
         return social;
     }
     public CharacterStats? ForSelf(EntityIdentityDecoder identities)
@@ -23,7 +23,7 @@ public sealed class CharacterStatsDecoder
         if(identities.LocalPlayerId is not int actor||!actors.TryGetValue(actor,out var own)||identities.Names.GetValueOrDefault(actor)!=own.Name)return null;
         var found=room.Values.Where(x=>x.Character.Name==own.Name&&(x.Character.ServerId==own.Server||x.CurrentServerId==own.Server)).Take(2).ToArray();
         var social=DirectoryStats(own.Name,null,null,own.Job,own.Stats.ItemLevel);
-        return found.Length==1?new(own.Stats.ItemLevel??(found[0].ItemLevel>0?found[0].ItemLevel:social?.ItemLevel),found[0].CombatPower??social?.CombatPower):new(own.Stats.ItemLevel??social?.ItemLevel,social?.CombatPower);
+        return found.Length==1?new(own.Stats.ItemLevel??(found[0].ItemLevel>0?found[0].ItemLevel:social?.ItemLevel),found[0].CombatPower??social?.CombatPower,own.Job):new(own.Stats.ItemLevel??social?.ItemLevel,social?.CombatPower,own.Job);
     }
     public void Observe(ReadOnlySpan<byte> record,EntityIdentityDecoder identities)
     {
@@ -92,7 +92,7 @@ public sealed class CharacterStatsDecoder
             int power=BinaryPrimitives.ReadInt32LittleEndian(directory.AsSpan(tail+16));
             if(gear is <1 or >99999||power is <1 or >999999999||BinaryPrimitives.ReadInt32LittleEndian(directory.AsSpan(tail+20))!=0||itemLevel.HasValue&&gear!=itemLevel)continue;
             if(++matches>1)return null;
-            result=new(gear,power);
+            result=new(gear,power,entryJob);
         }
         return result;
     }

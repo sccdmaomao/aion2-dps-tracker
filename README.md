@@ -32,6 +32,7 @@ the name only; the current combat entity still needs to be mapped from traffic.
 
 - All detected party members, including idle members; up to five players total.
 - Party-only damage, per-player DPS, damage percentage, and damage-share bars.
+- Official Aion 2 class emblems beside player names, available offline, with class-name tooltips when class data is available.
 - Player labels show `Name (item level / combat power)` from observed identity,
   character-directory and recruiting-room data. Item level often arrives during
   teleport; power can arrive separately. Missing values display `—`; stats stay in memory

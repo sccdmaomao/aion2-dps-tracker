@@ -26,6 +26,23 @@ ID, and omits the isBoss field. No private AionFlex name table is distributed.
 The upstream license is reproduced below. Optional local target-names.json
 entries can override or extend this catalog; see the README.
 
+## Official class emblems
+
+The eight class emblems embedded in the application are official AION 2 artwork:
+© NC Corporation. All Rights Reserved. They are used to identify classes within
+this unofficial fan tool and are not covered by this repository's MIT license.
+They are not offered as a standalone asset pack or sublicensed for other uses.
+
+Source: https://aion2.plaync.com/en-us/about/index#classes
+Official fan-content guidelines:
+https://aion2.plaync.com/ja-jp/board/rules/view?articleId=6a7d9723bcc86319892231b1
+
+`src/LocalDps/Assets/Classes/provenance.json` records each original NC CDN URL and
+SHA-256 digest. WebP originals were decoded to PNG for WPF compatibility without
+redrawing, resizing, recoloring or cropping. The application reads the embedded
+images and makes no network requests for them. This project is not affiliated
+with, endorsed by, or sponsored by NC Corporation.
+
 Npcap is a separately installed dependency governed by its own license:
 https://npcap.com/#license. Its installer, DLLs, and driver are not redistributed.
 Microsoft .NET is also installed separately.

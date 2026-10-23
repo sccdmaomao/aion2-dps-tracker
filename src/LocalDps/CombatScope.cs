@@ -61,13 +61,13 @@ public sealed class CombatScope
         var rows=new List<PlayerRow>();
         int? self=LocalPlayerId;
         string? selfName=self.HasValue?Name(self.Value):ConfirmedSelfName;
-        void Add(int? id,string name,string state,CharacterStats? stats)
+        void Add(int? id,string name,string state,CharacterStats? stats,uint? classId=null)
         {
             var damage=id.HasValue?damageRows.FirstOrDefault(r=>r.ActorId==id):null;
             if(selectedActor.HasValue&&id!=selectedActor)state="Outside selected attacker";
             else if(damage is {Hits:>0})state="Damage captured";
             var row=damage is null?new PlayerRow(id,name,0,0,0,0,state):damage with {Actor=name,Status=state};
-            rows.Add(row with {ItemLevel=stats?.ItemLevel,CombatPower=stats?.CombatPower});
+            rows.Add(row with {ItemLevel=stats?.ItemLevel,CombatPower=stats?.CombatPower,ClassId=row.ClassId??stats?.ClassId??classId});
         }
         if(!string.IsNullOrWhiteSpace(selfName))Add(self,selfName,self.HasValue?"No hits captured":"Waiting for your identity",Statistics.ForSelf(Identity));
         if(Party.IsAuthoritative)foreach(var member in Party.Members)
@@ -77,7 +77,7 @@ public sealed class CombatScope
             int? id=matches.Length==1?matches[0].Key:null;
             string state=matches.Length>1?"Ambiguous identity":id.HasValue?"No hits captured":"Combat identity not received";
             if(member.Name=="Unknown party member")state="Waiting for member name";
-            Add(id,member.Name,state,Statistics.ForMember(member));
+            Add(id,member.Name,state,Statistics.ForMember(member),Party.ClassForMember(member));
         }
         // Accepted encounter contributions remain visible after a roster change.
         // Include() alone decides whether subsequent hits may be recorded.

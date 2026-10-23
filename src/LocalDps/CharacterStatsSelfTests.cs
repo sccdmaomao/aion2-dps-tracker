@@ -23,6 +23,8 @@ public static class CharacterStatsSelfTests
         var row=scope.DisplayRows(Array.Empty<PlayerRow>()).Single();
         Require(row is {Actor:"Hero",ItemLevel:2500,CombatPower:125000},"room stats bind self across home/current server differences");
         Require(!row.DisplayActor.Contains("(you)")&&!row.DisplayActor.Contains("(party)"),"display uses stats instead of role suffixes");
+        using(var diagnostic=System.Text.Json.JsonDocument.Parse(System.Text.Json.JsonSerializer.Serialize(row)))
+            Require(diagnostic.RootElement.GetProperty("ClassId").GetUInt32()==34&&!diagnostic.RootElement.TryGetProperty("ClassIconImage",out _),"diagnostic rows retain class IDs without serializing WPF bitmap internals");
         Require(!scope.Party.IsAuthoritative&&scope.AllowedActors().SetEquals(new[]{200}),"room stats cannot establish party membership");
         Require(scope.Statistics.ForMember(new(0,"Hero",1102,410001)) is {ItemLevel:2500,CombatPower:125000},"member stats require exact persistent identity");
         Require(scope.Statistics.ForMember(new(0,"Hero",1103,410001)) is null,"same name on another home server cannot borrow stats");
@@ -55,6 +57,7 @@ public static class CharacterStatsSelfTests
             var direct=new CombatScope();direct.Observe(local,1);direct.Observe(badDirectory,2);
             Require(direct.Statistics.ForSelf(direct.Identity)?.CombatPower is null,"class/gear mismatches and ambiguous directory entries cannot supply self CP");
         }
+        Require(clean.Statistics.ForSelf(clean.Identity)?.ClassId==34,"self class survives absent combat power");
         scope.Reset();Require(scope.Statistics.ForMember(new(0,"Hero",1102,410001)) is null,"stats do not survive connection reset");
     }
 }

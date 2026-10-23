@@ -1,4 +1,4 @@
-<Window x:Class="LocalDps.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Local DPS Tracker 1.1.2" Width="580" Height="790" MinWidth="460" MinHeight="520" Background="#0C111B" Foreground="#E8EDF6" FontFamily="Segoe UI">
+<Window x:Class="LocalDps.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Local DPS Tracker 1.2.0" Width="580" Height="790" MinWidth="460" MinHeight="520" Background="#0C111B" Foreground="#E8EDF6" FontFamily="Segoe UI">
  <Window.Resources>
   <Geometry x:Key="CompactGeometry">M 2,2 L 16,2 L 16,16 L 2,16 Z M 10,10 L 16,10 L 16,16 L 10,16 Z</Geometry>
   <Geometry x:Key="RestoreGeometry">M 2,6 L 12,6 L 12,16 L 2,16 Z M 6,6 L 6,2 L 16,2 L 16,12 L 12,12</Geometry>
@@ -27,6 +27,13 @@
   <Style TargetType="DataGridCell"><Setter Property="BorderThickness" Value="0"/><Setter Property="FocusVisualStyle" Value="{x:Null}"/><Setter Property="Foreground" Value="#E8EDF6"/><Setter Property="VerticalContentAlignment" Value="Center"/><Style.Triggers><Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#20363F"/><Setter Property="Foreground" Value="#E8EDF6"/></Trigger></Style.Triggers></Style>
   <Style TargetType="DataGridRow"><Setter Property="MinHeight" Value="68"/><Setter Property="Background" Value="#141D2C"/><Setter Property="Foreground" Value="#E8EDF6"/><Style.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#1B293C"/></Trigger></Style.Triggers></Style>
   <Style x:Key="ShareBar" TargetType="ProgressBar"><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ProgressBar"><Grid x:Name="PART_Track" Height="3" ClipToBounds="True"><Border Background="#263449" CornerRadius="1.5"/><Decorator x:Name="PART_Indicator" HorizontalAlignment="Left"><Border Background="#4B8D87" CornerRadius="1.5"/></Decorator></Grid></ControlTemplate></Setter.Value></Setter></Style>
+  <Style x:Key="ClassIcon" TargetType="ContentControl">
+   <Setter Property="Width" Value="18"/><Setter Property="Height" Value="18"/><Setter Property="Margin" Value="0,0,6,0"/>
+   <Setter Property="VerticalAlignment" Value="Center"/><Setter Property="ToolTip" Value="{Binding ClassName}"/>
+   <Setter Property="AutomationProperties.Name" Value="{Binding ClassName}"/>
+   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ContentControl"><Image Source="{Binding ClassIconImage}" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/></ControlTemplate></Setter.Value></Setter>
+   <Style.Triggers><DataTrigger Binding="{Binding HasClass}" Value="False"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers>
+  </Style>
  </Window.Resources>
  <Grid>
  <Grid x:Name="NormalRoot" Margin="22,18,22,16">
@@ -49,7 +56,7 @@
   </Grid>
   <Border x:Name="ChartBorder" Grid.Row="2" Background="#141D2C" CornerRadius="10" BorderBrush="#233047" BorderThickness="1" ClipToBounds="True"><DataGrid x:Name="PlayersGrid" IsReadOnly="True" AutoGenerateColumns="False" Background="Transparent" Foreground="#E8EDF6" HeadersVisibility="Column" CanUserAddRows="False" CanUserResizeColumns="False" CanUserReorderColumns="False" GridLinesVisibility="None" BorderThickness="0" HorizontalScrollBarVisibility="Auto" RowHeaderWidth="0" SelectionMode="Single">
    <DataGrid.Columns>
-    <DataGridTemplateColumn Header="PARTY (ITEM LEVEL / POWER)" Width="*" MinWidth="220"><DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Margin="16,6,20,6"><TextBlock Text="{Binding DisplayActor}" TextTrimming="CharacterEllipsis" ToolTip="{Binding DisplayActor}" FontWeight="SemiBold" FontSize="14"/><TextBlock Text="{Binding Status}" FontSize="10" Foreground="#8290A8" Margin="0,3,0,8"/><ProgressBar Style="{StaticResource ShareBar}" Maximum="100" Value="{Binding Share}"/></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+    <DataGridTemplateColumn Header="PARTY (ITEM LEVEL / POWER)" Width="*" MinWidth="220"><DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Margin="16,6,20,6"><Grid><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><ContentControl Style="{StaticResource ClassIcon}"/><TextBlock Grid.Column="1" Text="{Binding DisplayActor}" TextTrimming="CharacterEllipsis" ToolTip="{Binding DisplayActor}" FontWeight="SemiBold" FontSize="14" VerticalAlignment="Center"/></Grid><TextBlock Text="{Binding Status}" FontSize="10" Foreground="#8290A8" Margin="0,3,0,8"/><ProgressBar Style="{StaticResource ShareBar}" Maximum="100" Value="{Binding Share}"/></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
     <DataGridTemplateColumn Header="DPS / DAMAGE SHARE" Width="155"><DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0,18,0"><TextBlock Text="{Binding DpsText}" FontFamily="Cascadia Mono,Consolas" FontSize="23" FontWeight="SemiBold" Foreground="#71E2C1" HorizontalAlignment="Right"/><TextBlock Text="{Binding ShareText}" FontSize="11" Foreground="#8290A8" HorizontalAlignment="Right" ToolTip="Your damage divided by all captured party damage for the selected encounter and target."/></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
    </DataGrid.Columns>
   </DataGrid></Border>
@@ -72,7 +79,7 @@
    <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <ItemsControl x:Name="CompactPlayers"><ItemsControl.ItemTemplate><DataTemplate>
      <Grid Height="40" Margin="2,0,2,0"><Grid.ColumnDefinitions><ColumnDefinition/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-      <TextBlock Text="{Binding Actor}" ToolTip="{Binding DisplayActor}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="0,0,10,5"/>
+      <Grid VerticalAlignment="Center" Margin="0,0,10,5"><Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions><ContentControl Style="{StaticResource ClassIcon}" Width="16" Height="16"/><TextBlock Grid.Column="1" Text="{Binding Actor}" ToolTip="{Binding DisplayActor}" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/></Grid>
       <TextBlock Grid.Column="1" Text="{Binding DpsText}" FontFamily="Cascadia Mono,Consolas" FontSize="20" FontWeight="SemiBold" Foreground="#71E2C1" VerticalAlignment="Center" Margin="0,0,0,5"/>
       <ProgressBar Grid.ColumnSpan="2" Style="{StaticResource ShareBar}" Maximum="100" Value="{Binding Share}" VerticalAlignment="Bottom" Margin="0,0,0,3"/>
      </Grid>

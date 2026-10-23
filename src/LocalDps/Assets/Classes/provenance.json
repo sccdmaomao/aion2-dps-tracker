@@ -1,0 +1,57 @@
+{
+  "sourcePage": "https://aion2.plaync.com/en-us/about/index#classes",
+  "copyright": "© NC Corporation. All Rights Reserved.",
+  "guidelines": "https://aion2.plaync.com/ja-jp/board/rules/view?articleId=6a7d9723bcc86319892231b1",
+  "retrieved": "2026-10-23",
+  "conversion": "WebP decoded to PNG without resizing, recoloring, cropping or redrawing.",
+  "assets": [
+    {
+      "class": "gladiator",
+      "source": "https://assets.playnccdn.com/static-about-game/aion2-global/1.0.0/img/classes/emblem-1.webp",
+      "sourceSha256": "f3e2dfd48ab31804ba861214cf48a59a34fe73c7947433ae46cb257b857b59ae",
+      "pngSha256": "b376e0ac2b76dbb17222da53dddd3bd3ccc47169f2c7823284c14acde58dffc5"
+    },
+    {
+      "class": "templar",
+      "source": "https://assets.playnccdn.com/static-about-game/aion2-global/1.0.0/img/classes/emblem-2.webp",
+      "sourceSha256": "4c808eeec5f6fb2fdeeb42b1eb9e6b3a9d96728d4ca7789ddefd77e6855e1a3a",
+      "pngSha256": "68bf4f75bc8b950bda1d089fef29b16b88b3d1131cb8bdc3d20e20ed646b5f7e"
+    },
+    {
+      "class": "assassin",
+      "source": "https://assets.playnccdn.com/static-about-game/aion2-global/1.0.0/img/classes/emblem-3.webp",
+      "sourceSha256": "ea6d97da74320e9c4416f80c9091c872cea6b4b157e02849cef4388da130f157",
+      "pngSha256": "9c106387c98887d464b578b84696a3bd267623362c2a16d265c8f7a02f277403"
+    },
+    {
+      "class": "ranger",
+      "source": "https://assets.playnccdn.com/static-about-game/aion2-global/1.0.0/img/classes/emblem-4.webp",
+      "sourceSha256": "a905c9e516334afa443232dc47d260b486778a47524c788056435cbd8e3079ef",
+      "pngSha256": "8044a364822f1d01035f1b3b8fbc49fd90d3a4536e8a3e998d564b7a45e64b3c"
+    },
+    {
+      "class": "chanter",
+      "source": "https://assets.playnccdn.com/static-about-game/aion2-global/1.0.0/img/classes/emblem-5.webp",
+      "sourceSha256": "ffe01d0b6c9cbde65601ab392677aaba22485db969028b886f0442e74db364a4",
+      "pngSha256": "662e938da796e42ed954ce3302e035c1eb7a8656fe0dae6543fb25f1a6dc5fc6"
+    },
+    {
+      "class": "cleric",
+      "source": "https://assets.playnccdn.com/static-about-game/aion2-global/1.0.0/img/classes/emblem-6.webp",
+      "sourceSha256": "e9bba9ebac800ab730eea56721d7f6c820406d2e17a0f6dcb1f6e43268be239f",
+      "pngSha256": "c2972281da9ad71354375b8654f90267382b90f479e2245f919445f12dcd7876"
+    },
+    {
+      "class": "sorcerer",
+      "source": "https://assets.playnccdn.com/static-about-game/aion2-global/1.0.0/img/classes/emblem-7.webp",
+      "sourceSha256": "937bef82c1fb0202091cb6b889353c02eb5d20000ecf44693f13ee5bf599beaf",
+      "pngSha256": "7f89ea5c364c6021bc124dfb37be8f750bee009af287a7c84c17191df494c413"
+    },
+    {
+      "class": "spiritmaster",
+      "source": "https://assets.playnccdn.com/static-about-game/aion2-global/1.0.0/img/classes/emblem-8.webp",
+      "sourceSha256": "814e492e61a6774ea66badec6159871f65ccc777deb7d52cdbb59c19aaf56819",
+      "pngSha256": "15875d6b9ee5ba3960ea003823b47fa25dd61e8d941eaedd155fb2169fbf0212"
+    }
+  ]
+}
