@@ -10,6 +10,7 @@ public static class SelfTests
         LocalDps.Protocol.ChainedCombatSelfTests.Run();
         PipelineSelfTests.Run();
         ScopeSelfTests.Run();
+        PartyDeathSelfTests.Run();
         PartyProtocolSelfTests.Run();
         PartyStartupSelfTests.Run();
         PartyNameStoreSelfTests.Run();

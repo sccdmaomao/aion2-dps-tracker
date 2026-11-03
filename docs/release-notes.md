@@ -1,13 +1,10 @@
-Local DPS Tracker 1.2.0 adds official Aion 2 class emblems beside player names.
+Local DPS Tracker 1.3.0 adds skull badges with observed party deaths per fight.
 
-- Official class emblems appear in full view, compact view and copied damage charts. Hover an icon to see its class name.
-- The eight supported class emblems are embedded in the app and work offline; the tracker makes no network requests to load them.
-- Class information comes from existing character and party records. Distant party members can retain a class icon before their combat entity arrives. Unknown or conflicting classes remain unavailable.
-- Finished encounter rows preserve their captured class information after party changes. Class metadata never establishes party membership or expands capture scope.
-- Copied charts include a small artwork credit. Official emblems remain NC Corporation artwork, separate from the application's MIT license; source URLs and hashes are recorded in the repository and credits are included in NOTICE.md.
+- Full view, compact view and copied charts show a skull and death count beside each party member’s name. Unmapped combat identities show a dash.
+- Counts follow the selected fight, remain the same across target filters, and start fresh for the next encounter. Finished fights retain death-only party members after they leave.
+- Only a recent positive-to-zero HP transition from a verified self/party actor counts. Repeated zero updates do not add deaths; resurrection permits another death. Party changes, entity/name reuse, stale HP, malformed records and out-of-order updates cannot manufacture a count.
+- Counters are based on locally received HP updates. They may miss deaths when updates are not received, for example from out-of-range teammates. Deaths do not change damage capture, DPS or enemy defeat timing.
 
-Getting started: install the .NET 8 Desktop Runtime (Windows x64) and Npcap separately, extract the whole ZIP, click play, and teleport once while capture is running if identity confirmation is missing. Use windowed or borderless mode for the compact desktop overlay.
+Validation: clean Windows build and offline regression tests for duplicate suppression, resurrection, same-chunk updates, nearby-player exclusion, malformed/stale health, party departure, preserved history, identity reuse and capture reset. Synthetic full/minimum/compact and copied-chart renders verified the badges. Three private recordings contained 283 supported HP updates but no player death transitions: in-game death-transition validation remains outstanding.
 
-Validation: clean Windows build and offline self-tests, including class metadata, ambiguous caches, distant members, session reset and preserved encounter metadata. Synthetic full/minimum/compact and copied-chart renders checked all eight emblems and five-player layouts. The official source WebP images and embedded PNGs retain identical RGBA pixels. Existing damage-decoding and accuracy limitations remain unchanged.
-
-Public assets contain blank profiles and no player recordings, learned names or saved window preferences. Previous confirmed-defeat timing, whole-number DPS and chained-hit support remain included.
+Install the .NET 8 Desktop Runtime (Windows x64) and Npcap separately, extract the entire ZIP, click play, and teleport once while capturing if character identity confirmation is missing. The app remains local-only. Public assets contain blank profiles and no player recordings, learned names or saved window preferences. Official class emblems remain credited to NC Corporation in NOTICE.md.

@@ -47,11 +47,16 @@ public sealed class CombatScope
         }
         return ids;
     }
+    public bool IncludesActor(int actor)
+    {
+        bool allowed=AllowedActors().Contains(actor);
+        if(allowed&&actor!=LocalPlayerId&&stableChunkMembers is not null)
+            allowed=Party.Members.Any(m=>stableChunkMembers.Contains((m.CharacterId,m.ServerId))&&Identity.Names.TryGetValue(actor,out var name)&&name==m.Name);
+        return allowed;
+    }
     public bool Include(CombatHit hit)
     {
-        bool allowed=AllowedActors().Contains(hit.ActorId);
-        if(allowed&&hit.ActorId!=LocalPlayerId&&stableChunkMembers is not null)
-            allowed=Party.Members.Any(m=>stableChunkMembers.Contains((m.CharacterId,m.ServerId))&&Identity.Names.TryGetValue(hit.ActorId,out var name)&&name==m.Name);
+        bool allowed=IncludesActor(hit.ActorId);
         if(!allowed)ExcludedHits++;return allowed;
     }
     public string Name(int id)=>Identity.Names.TryGetValue(id,out string? name)?name:id==partySetSelfId&&ConfirmedSelfName is not null?ConfirmedSelfName:$"Unknown entity {id}";

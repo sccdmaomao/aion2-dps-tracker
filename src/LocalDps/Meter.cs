@@ -1,7 +1,10 @@
 using LocalDps.Protocol;
 namespace LocalDps;
-public sealed record PlayerRow(int? ActorId,string Actor,long Damage,double Dps,int Hits,double Share,string Status="",int? ItemLevel=null,int? CombatPower=null,uint? ClassId=null)
+public sealed record PlayerRow(int? ActorId,string Actor,long Damage,double Dps,int Hits,double Share,string Status="",int? ItemLevel=null,int? CombatPower=null,uint? ClassId=null,int? Deaths=null)
 {
+    public bool HasDeaths=>Deaths is >0;
+    public string DeathText=>Deaths?.ToString("N0")??"—";
+    public string DeathTooltip=>Deaths.HasValue?$"Observed deaths in this fight: {Deaths:N0}. Only captured HP transitions count.":"Death count unavailable until combat identity is received.";
     public string ClassName=>PlayerClasses.ForRosterId(ClassId).Name;
     public bool HasClass=>PlayerClasses.ForRosterId(ClassId).Image is not null;
     [System.Text.Json.Serialization.JsonIgnore]

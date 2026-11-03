@@ -104,3 +104,28 @@ and ambiguous five-player sets, late attribution, target remapping, HP zero and
 revival, encounter timing and target/player DPS. Private development recordings
 also exercised real game traffic, but are not distributed and are not an
 independent comparison against game-server damage totals.
+
+## Observed party death counts
+
+Party HP updates use the width-aware server-to-client lane: `1B 92`, entity,
+current HP and maximum HP as varints, followed by 25 opaque bytes. The bounded
+shape was present in 283 updates across three private recordings. Zero-HP death
+transitions were absent from those recordings; the transition interpretation is
+supported by the [reference parser's `1B 92` handling](https://github.com/taengu/A2Tools-DPS-Meter/blob/08b249d49ef18be9ac9b41d8dd35596ae99aacfd/src-tauri/src/capture/stream_processor.rs#L591), and synthetic tests
+exercise death, resurrection and duplicates. Live party-death validation remains
+outstanding. Other health layouts are not guessed.
+
+Only currently verified self/party actors can establish a positive-HP baseline
+or death. A recent (at most 30 seconds) positive-to-zero transition counts once;
+repeated zero updates do not, and positive HP permits another death. Unknown
+initial zero, stale or out-of-order health, unsupported frames, entity/name reuse
+and membership changes do not manufacture deaths. Ordered updates in one TCP
+chunk may share a receive timestamp. Counters are local observations and may miss
+deaths when health updates are not sent (for example, out-of-range members).
+
+Skull badges show observed deaths within the selected encounter's start/end,
+shared across target filters, in full view, compact view and copied charts.
+Unmapped identities show a dash. Captured death-only members remain in finished
+fight history after leaving. Health observations never authorize damage capture,
+change DPS, start encounters or end enemy encounters. New capture/reset clears
+baselines and counts; stored death events are bounded to 4,096 per session.

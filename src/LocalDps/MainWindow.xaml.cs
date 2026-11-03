@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     readonly IdentityRecordStream identityRecords=new();
     readonly HashSet<int> serverPorts=new();
     readonly PartyHitAttribution attribution;
+    readonly PartyDeathTracker partyDeaths;
     readonly CombatScope scope=new();
     readonly TargetIdentityDecoder targetIdentity=new();
     readonly TargetHealthDecoder targetHealth=new();
@@ -124,6 +125,7 @@ public partial class MainWindow : Window
         if(persistKnownNames)try{scope.Party.RestoreKnownNames(PartyNameStore.Load(Path.Combine(AppContext.BaseDirectory,"learned-character-names.json")));var saved=PartyNameStore.Load();scope.Party.RestoreKnownNames(saved);var known=scope.Party.KnownNames;savedKnownNamesVersion=known.Length==saved.Length&&known.All(n=>saved.Contains(n))?scope.Party.KnownNamesVersion:-1;}catch(Exception ex){nameCacheStatus=" · name cache: "+ex.Message;}
         try{var profile=trackingProfile??TrackingProfile.Load();profile.Apply(scope);savedSelfName=profile.SelfName;}catch(Exception ex){statusMessage="Character name could not load: "+ex.Message;}
         attribution=new(scope,encounters.Add);
+        partyDeaths=new(scope,encounters);
         decoder.IncludeHit=SkillRules.LoadBundled().Include;
         encounters.DisplayName=scope.Label;
         encounters.DescribePlayers=rows=>scope.DisplayRows(rows);
@@ -132,6 +134,7 @@ public partial class MainWindow : Window
         identityRecords.RecordObserved+=scope.Observe;
         identityRecords.RecordObserved+=targetIdentity.Observe;
         identityRecords.RecordObserved+=targetHealth.Observe;
+        identityRecords.RecordObserved+=partyDeaths.Observe;
         decoder.HitDecoded+=attribution.Add;
         capture.StreamChunk+=AcceptChunk;
         capture.Status+=message=>Dispatcher.BeginInvoke(()=>{if(message.StartsWith("Capture stopped:")||message.StartsWith("TCP gap"))statusMessage=message;});
@@ -178,7 +181,7 @@ public partial class MainWindow : Window
         int[] ports=connections.Select(c=>c.RemotePort).Distinct().Order().ToArray();
         string signature=device.Name+":"+string.Join(",",ports);
         if(signature==activeConnection&&capture.IsRunning){connectionWaiting=false;return;}
-        capture.Stop();lock(gate){decoder.Reset();identityRecords.Reset();scope.Reset();targetIdentity.Reset();targetHealth.Reset();encounters.Reset();encounters.Start();attribution.Reset();serverPorts.Clear();serverPorts.UnionWith(ports);}
+        capture.Stop();lock(gate){decoder.Reset();identityRecords.Reset();scope.Reset();targetIdentity.Reset();targetHealth.Reset();partyDeaths.Reset();encounters.Reset();encounters.Start();attribution.Reset();serverPorts.Clear();serverPorts.UnionWith(ports);}
         capture.StartGamePorts(device.Name,ports);activeConnection=signature;captureStarted=DateTimeOffset.UtcNow;noPacketsWarned=false;connectionWaiting=false;
         statusMessage="Capturing. Waiting for combat…";
     }
@@ -205,7 +208,7 @@ public partial class MainWindow : Window
         }
         catch(Exception ex){autoCapturing=false;UpdateCaptureButton(false);statusMessage="Cannot start: "+ex.Message;}
     }
-    void Reset(bool clearIdentity=false){lock(gate){encounters.Reset();if(autoCapturing)encounters.Start();attribution.Reset();decoder.Reset();identityRecords.Reset();if(clearIdentity){scope.Reset();targetIdentity.Reset();targetHealth.Reset();serverPorts.Clear();}chunks=0;}Render();}
+    void Reset(bool clearIdentity=false){lock(gate){encounters.Reset();partyDeaths.Reset();if(autoCapturing)encounters.Start();attribution.Reset();decoder.Reset();identityRecords.Reset();if(clearIdentity){scope.Reset();targetIdentity.Reset();targetHealth.Reset();serverPorts.Clear();}chunks=0;}Render();}
     string ResolveTarget(int id)=>scope.Identity.Names.TryGetValue(id,out string? name)?name:targetIdentity.Resolve(id)??$"Unknown target {id}";
     TargetDeath? DeathFor(int id)=>meter.TargetTimes(id) is {} times?targetHealth.FindDeath(id,times.First,times.Last):null;
     // Only verified hits enter encounters; later roster changes must not filter history.
@@ -238,7 +241,7 @@ public partial class MainWindow : Window
             UpdateTargets();
             int? targetId=(TargetBox.SelectedItem as TargetChoice)?.TargetId;
             var view=CurrentView(targetId);
-            PlayersGrid.ItemsSource=scope.DisplayRows(view.Players);CompactPlayers.ItemsSource=PlayersGrid.ItemsSource;
+            PlayersGrid.ItemsSource=partyDeaths.Describe(scope.DisplayRows(view.Players),SelectedEncounter);CompactPlayers.ItemsSource=PlayersGrid.ItemsSource;
             Totals.Text=$"{view.Damage:N0} damage · {view.Damage/Math.Max(1,view.Seconds):N0} DPS · {view.Hits:N0} hits";
             EncounterTime.Text=SelectedEncounter is {} fight?$"{encounters.State(fight,targetId)} · {TimeSpan.FromSeconds(view.Seconds).ToString(@"hh\:mm\:ss")}":"Waiting for combat · 00:00:00";
         }
@@ -248,7 +251,7 @@ public partial class MainWindow : Window
         Reset(true);RecordedStreamReplay.Read(path,AcceptChunk);Render();
         TargetBox.SelectedItem=((TargetChoice[])TargetBox.ItemsSource).FirstOrDefault(c=>c.EncounterId==encounters.Latest?.Id&&c.TargetId==target)??TargetBox.Items[0];Render();
         var rows=PlayersGrid.Items.Cast<PlayerRow>().ToArray();
-        return new{rows=rows.Length,players=rows,hits=rows.Sum(r=>r.Hits),damage=rows.Sum(r=>r.Damage),displayed=Totals.Text,characterDisplay=CharacterNameText.Text,confirmedSelfName=scope.ConfirmedSelfName,encounter=EncounterInfo(),observedDeaths=targetHealth.Deaths,targetDeaths=meter.TargetIds.Select(DeathFor).Where(d=>d is not null).ToArray(),encounterCount=encounters.Encounters.Count,encounterHistory=encounters.Encounters.Select(e=>new {id=e.Id,damage=e.Meter.TotalDamage,hits=e.Meter.TotalHits,seconds=encounters.Seconds(e),state=encounters.State(e)}).ToArray(),tcpChunks=chunks,localPlayerId=scope.LocalPlayerId,selfProof=scope.SelfProof,observedNames=scope.Identity.Names,scopeStatus=scope.Status,outsideScopeHits=scope.ExcludedHits,identityFrames=identityRecords.RecordsFramed,identityBundles=identityRecords.BundlesDecoded,identityRejected=identityRecords.RejectedRecords,partyCandidateCount=scope.Party.CandidateSnapshotsSeen,partyPeriodicUpdates=scope.Party.PeriodicUpdatesSeen,partyRecoveredAtStartup=scope.Party.RecoveredAtStartup,partyAuthoritative=scope.Party.IsAuthoritative,partyMembers=scope.Party.Members,partyProof=scope.Party.Proof,targets=meter.TargetIds.Select(id=>{var view=CurrentView(id);return new TargetRow(id,ResolveTarget(id),view.Damage,view.Damage/Math.Max(1,view.Seconds),view.Hits,view.Seconds);}).OrderByDescending(t=>t.Damage).ToArray(),observedTargetNames=targetIdentity.Names,recommendedAdapter=AdapterSelection.Recommend(PacketCaptureService.ListDevices())?.Description};
+        return new{rows=rows.Length,players=rows,hits=rows.Sum(r=>r.Hits),damage=rows.Sum(r=>r.Damage),displayed=Totals.Text,characterDisplay=CharacterNameText.Text,confirmedSelfName=scope.ConfirmedSelfName,encounter=EncounterInfo(),observedDeaths=targetHealth.Deaths,observedPartyDeaths=partyDeaths.ObservedDeaths,targetDeaths=meter.TargetIds.Select(DeathFor).Where(d=>d is not null).ToArray(),encounterCount=encounters.Encounters.Count,encounterHistory=encounters.Encounters.Select(e=>new {id=e.Id,damage=e.Meter.TotalDamage,hits=e.Meter.TotalHits,seconds=encounters.Seconds(e),state=encounters.State(e)}).ToArray(),tcpChunks=chunks,localPlayerId=scope.LocalPlayerId,selfProof=scope.SelfProof,observedNames=scope.Identity.Names,scopeStatus=scope.Status,outsideScopeHits=scope.ExcludedHits,identityFrames=identityRecords.RecordsFramed,identityBundles=identityRecords.BundlesDecoded,identityRejected=identityRecords.RejectedRecords,partyCandidateCount=scope.Party.CandidateSnapshotsSeen,partyPeriodicUpdates=scope.Party.PeriodicUpdatesSeen,partyRecoveredAtStartup=scope.Party.RecoveredAtStartup,partyAuthoritative=scope.Party.IsAuthoritative,partyMembers=scope.Party.Members,partyProof=scope.Party.Proof,targets=meter.TargetIds.Select(id=>{var view=CurrentView(id);return new TargetRow(id,ResolveTarget(id),view.Damage,view.Damage/Math.Max(1,view.Seconds),view.Hits,view.Seconds);}).OrderByDescending(t=>t.Damage).ToArray(),observedTargetNames=targetIdentity.Names,recommendedAdapter=AdapterSelection.Recommend(PacketCaptureService.ListDevices())?.Description};
     }
     object? EncounterInfo()
     {
