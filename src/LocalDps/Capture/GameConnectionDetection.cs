@@ -8,8 +8,14 @@ public static class GameConnectionDetection
 {
     public static IReadOnlyList<GameConnection> Find()
     {
+        var connections=FindAvailable();
+        return connections.Count>0?connections:throw new InvalidOperationException("Open Aion 2 and enter the world to connect.");
+    }
+
+    internal static IReadOnlyList<GameConnection> FindAvailable()
+    {
         var ids=new HashSet<int>();foreach(var p in Process.GetProcessesByName("AION2")){using(p)ids.Add(p.Id);}
-        if(ids.Count==0)throw new InvalidOperationException("Open Aion 2 and enter the game, then click Start capturing.");
+        if(ids.Count==0)return Array.Empty<GameConnection>();
         var found=new List<GameConnection>();
         foreach(int family in new[]{2,23})
         {
@@ -37,7 +43,6 @@ public static class GameConnectionDetection
             }
             finally{Marshal.FreeHGlobal(table);}
         }
-        if(found.Count==0)throw new InvalidOperationException("Aion 2 is running, but no supported game connection is active yet. Enter the world, then try again.");
         return found.Distinct().ToArray();
     }
     [DllImport("iphlpapi.dll",SetLastError=true)]static extern uint GetExtendedTcpTable(IntPtr table,ref int size,[MarshalAs(UnmanagedType.Bool)]bool order,int family,int tableClass,uint reserved);

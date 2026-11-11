@@ -4,7 +4,10 @@ using System.IO;
 namespace LocalDps.Protocol;
 
 public sealed record CombatHit(long TimestampMs, int ActorId, int TargetId, int SkillId,
-    long Damage, bool IsDot, int EventCounter = 0, bool IsCritical = false);
+    long Damage, bool IsDot, int EventCounter = 0, bool IsCritical = false)
+{
+    internal string? CapturedTargetName { get; init; }
+}
 public enum GameFraming { LegacyCombat, WidthAware }
 public delegate void GameRecordHandler(ReadOnlySpan<byte> record,long timestampMs);
 

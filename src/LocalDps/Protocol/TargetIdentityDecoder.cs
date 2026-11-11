@@ -8,6 +8,7 @@ namespace LocalDps.Protocol;
 /// <summary>Resolves entity IDs through observed NPC spawn templates; entity IDs are never used as template IDs.</summary>
 public sealed class TargetIdentityDecoder
 {
+    private static readonly IReadOnlySet<int> BossTemplates = ReadBossTemplates();
     private readonly Dictionary<int,int> templates = new();
     private readonly Dictionary<int,string> names = new();
     private readonly Dictionary<int,long> seen = new();
@@ -21,11 +22,25 @@ public sealed class TargetIdentityDecoder
         this.catalog=ReadCatalog(out var warning,catalogPath);CatalogWarning=warning;
     }
     public string? Resolve(int targetId) => names.GetValueOrDefault(targetId);
+
+    internal CombatHit? ClassifyBossHit(CombatHit hit)
+    {
+        if(!templates.TryGetValue(hit.TargetId,out int template)||!BossTemplates.Contains(template))return null;
+        return hit with {CapturedTargetName=Resolve(hit.TargetId)??$"Unknown boss {template}"};
+    }
+
+    private static IReadOnlySet<int> ReadBossTemplates()
+    {
+        using var input=typeof(TargetIdentityDecoder).Assembly.GetManifestResourceStream("LocalDps.Data.boss-template-ids.json")
+            ??throw new InvalidDataException("The bundled boss catalog is missing.");
+        return JsonSerializer.Deserialize<HashSet<int>>(input)
+            ??throw new InvalidDataException("The bundled boss catalog is invalid.");
+    }
     public void Reset() { templates.Clear();names.Clear();seen.Clear(); }
     public void Observe(ReadOnlySpan<byte> record,long timestamp)
     {
         int p=0;
-        if(!Var(record,ref p,out int declared) || declared<6 || p+2>record.Length) return;
+        if(!Var(record,ref p,out int declared) || declared<6 || declared-4+p!=record.Length || p+2>record.Length) return;
         byte op=record[p++],family=record[p++];
         if(family!=0x36 || op is not (0x40 or 0x41 or 0x42))return;
         if(!Var(record,ref p,out int entity) || entity<=0 || p+3>record.Length)return;

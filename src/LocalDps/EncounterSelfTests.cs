@@ -37,6 +37,21 @@ public static class EncounterSelfTests
         Assert(tracker.Encounters.Count==EncounterTracker.HistoryLimit,"history is bounded");
         tracker.Add(Hit(0));Assert(tracker.Encounters.Count==EncounterTracker.HistoryLimit&&tracker.Encounters.Sum(e=>e.Meter.TotalHits)==EncounterTracker.HistoryLimit,"expired history cannot be resurrected by delayed hits");
         tracker.Reset();Assert(tracker.Latest is null&&tracker.ClockMs is null&&!tracker.Running,"clear resets clock and history");
+        // Indexed target windows and actor totals must match the full view after
+        // out-of-order hits, encounter merges and resets.
+        var meter=new Meter();
+        meter.Add(Hit(6000,1,10,100));
+        meter.Add(Hit(2000,1,11,200));
+        var delayed=new Meter();
+        delayed.Add(Hit(1000,2,10,300));
+        delayed.Add(Hit(9000,1,10,400));
+        meter.Merge(delayed);
+        Assert(meter.TargetIds.SequenceEqual(new[]{10,11})&&meter.TargetTimes(10)==(1000L,9000L)
+            &&meter.TargetTimes(11)==(2000L,2000L),"target index preserves merged ranges");
+        Assert(meter.ActorView(1)==meter.View(actorId:1).Players.Single(),"actor metadata input matches the full filtered view");
+        meter.Reset();
+        Assert(meter.TargetIds.Length==0&&meter.TargetTimes(10) is null,"reset clears the target index");
+
         string observedName="Teammate";
         tracker.DisplayName=_=>observedName;
         tracker.DescribePlayers=rows=>rows.Select(r=>r with {ItemLevel=2500,CombatPower=125000,ClassId=34}).ToArray();

@@ -23,7 +23,8 @@ public sealed class Meter
     public Func<int,string> TargetName {get;set;}=id=>$"Unknown target {id}";
     sealed class Contribution { public long Damage,First,Last;public int Hits; }
     readonly Dictionary<(int Actor,int Target,int Skill),Contribution> contributions=new();
-    readonly Dictionary<int,(long Damage,int Hits)> actors=new();
+    readonly Dictionary<int,(long Damage,int Hits,long First,long Last)> actors=new();
+    readonly Dictionary<int,(long First,long Last)> targetTimes=new();
     readonly Dictionary<(int,int),(long Damage,int Hits)> skills=new();
     public long? FirstMs {get;private set;}
     public long? LastMs {get;private set;}
@@ -39,8 +40,8 @@ public sealed class Meter
         contribution.First=Math.Min(contribution.First,hit.TimestampMs);contribution.Last=Math.Max(contribution.Last,hit.TimestampMs);
         FirstMs=FirstMs.HasValue?Math.Min(FirstMs.Value,hit.TimestampMs):hit.TimestampMs;
         LastMs=LastMs.HasValue?Math.Max(LastMs.Value,hit.TimestampMs):hit.TimestampMs;
-        var old=actors.GetValueOrDefault(hit.ActorId);
-        actors[hit.ActorId]=(checked(old.Damage+hit.Damage),old.Hits+1);
+        TrackActor(hit.ActorId,hit.Damage,1,hit.TimestampMs,hit.TimestampMs);
+        TrackTarget(hit.TargetId,hit.TimestampMs,hit.TimestampMs);
         var key=(hit.ActorId,hit.SkillId); var sk=skills.GetValueOrDefault(key);
         skills[key]=(checked(sk.Damage+hit.Damage),sk.Hits+1);
         TotalDamage=checked(TotalDamage+hit.Damage); TotalHits++;
@@ -48,11 +49,30 @@ public sealed class Meter
     public PlayerRow[] Players()=>actors.Select(p=>new PlayerRow(p.Key,DisplayName(p.Key),p.Value.Damage,p.Value.Damage/DurationSeconds,p.Value.Hits,TotalDamage==0?0:p.Value.Damage*100.0/TotalDamage)).OrderByDescending(p=>p.Damage).ToArray();
     public SkillRow[] Skills()=>skills.Select(p=>new SkillRow(p.Key.Item1,p.Key.Item2,p.Value.Damage,p.Value.Hits)).OrderByDescending(p=>p.Damage).ToArray();
     public int[] ActorIds=>actors.Keys.Order().ToArray();
-    public int[] TargetIds=>contributions.Keys.Select(x=>x.Target).Distinct().Order().ToArray();
-    public (long First,long Last)? TargetTimes(int targetId)
+    internal IEnumerable<int> ObservedTargets=>targetTimes.Keys;
+    public int[] TargetIds=>ObservedTargets.Order().ToArray();
+    public (long First,long Last)? TargetTimes(int targetId)=>
+        targetTimes.TryGetValue(targetId,out var times)?times:null;
+
+    internal PlayerRow ActorView(int actorId)
     {
-        var selected=contributions.Where(p=>p.Key.Target==targetId).Select(p=>p.Value).ToArray();
-        return selected.Length==0?null:(selected.Min(c=>c.First),selected.Max(c=>c.Last));
+        var actor=actors[actorId];
+        double seconds=Math.Max(1,(actor.Last-actor.First)/1000.0);
+        return new PlayerRow(actorId,DisplayName(actorId),actor.Damage,actor.Damage/seconds,actor.Hits,100);
+    }
+
+    private void TrackActor(int actorId,long damage,int hits,long first,long last)
+    {
+        if(actors.TryGetValue(actorId,out var prior))
+            actors[actorId]=(checked(prior.Damage+damage),prior.Hits+hits,Math.Min(prior.First,first),Math.Max(prior.Last,last));
+        else actors[actorId]=(damage,hits,first,last);
+    }
+
+    private void TrackTarget(int targetId,long first,long last)
+    {
+        if(targetTimes.TryGetValue(targetId,out var prior))
+            targetTimes[targetId]=(Math.Min(prior.First,first),Math.Max(prior.Last,last));
+        else targetTimes[targetId]=(first,last);
     }
     public TargetRow[] Targets(int? actorId=null,IReadOnlySet<int>? allowedActors=null,double? elapsedSeconds=null)
     {
@@ -81,11 +101,12 @@ public sealed class Meter
             current.Damage=checked(current.Damage+value.Damage);current.Hits+=value.Hits;
             current.First=Math.Min(current.First,value.First);current.Last=Math.Max(current.Last,value.Last);
         }
-        foreach(var (key,value) in other.actors){var old=actors.GetValueOrDefault(key);actors[key]=(checked(old.Damage+value.Damage),old.Hits+value.Hits);}
+        foreach(var (id,actor) in other.actors)TrackActor(id,actor.Damage,actor.Hits,actor.First,actor.Last);
+        foreach(var (id,times) in other.targetTimes)TrackTarget(id,times.First,times.Last);
         foreach(var (key,value) in other.skills){var old=skills.GetValueOrDefault(key);skills[key]=(checked(old.Damage+value.Damage),old.Hits+value.Hits);}
         if(other.FirstMs.HasValue)FirstMs=FirstMs.HasValue?Math.Min(FirstMs.Value,other.FirstMs.Value):other.FirstMs;
         if(other.LastMs.HasValue)LastMs=LastMs.HasValue?Math.Max(LastMs.Value,other.LastMs.Value):other.LastMs;
         TotalDamage=checked(TotalDamage+other.TotalDamage);TotalHits+=other.TotalHits;
     }
-    public void Reset(){actors.Clear();skills.Clear();contributions.Clear();FirstMs=LastMs=null;TotalDamage=0;TotalHits=0;}
+    public void Reset(){actors.Clear();skills.Clear();contributions.Clear();targetTimes.Clear();FirstMs=LastMs=null;TotalDamage=0;TotalHits=0;}
 }

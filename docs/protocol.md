@@ -23,6 +23,11 @@ Supported explicit two-person party records: `0D 92` subtype 3/count 2 joins,
 `00 92` supported complete count-1 replacement removes a peer, and exact
 `13 92` body `00 00` clears on self-leave. Unsupported explicit snapshots block
 periodic startup recovery. `1C 92` recovers up to four distinct current peers.
+Its body is 63 bytes plus the optional guild-name byte count at offset 48,
+with persistent character ID (UInt48 LE), home server (UInt16 LE) and class
+(UInt32 LE) at offsets 0, 6 and 8. A five-player dungeon capture repeatedly
+showed two peers with final byte 1, one with 2 and one with 3. These are accepted
+for that complete layout. The trailer's meaning is unknown.
 
 Persistent character ID, home server and class bind learned names. A bounded
 `05 8A` directory lookup or recruiting-room `02 97` may supply name metadata;
@@ -45,10 +50,13 @@ show no icon. Official NC class emblems are embedded for offline display, with c
 and do not grant capture scope. Accepted encounter rows preserve their class after
 party changes along with their captured names and equipment stats.
 
-Up to two minutes of unresolved full-party candidate hits can be held in a
-bounded queue. They count only after identity proof, within the same membership
-epoch. Late hits are assigned to encounters by event timestamps and may merge
-intervals. Membership changes discard unresolved candidates.
+Up to two minutes of unresolved candidate hits can be held once at least one
+teammate is confirmed. A later unique combat ID can recover hits only for a
+teammate whose membership was already confirmed when the hit arrived. Additions
+can keep earlier candidates for existing teammates. A removal or reset discards
+unresolved hits. The full-party self fallback still requires the same membership
+throughout. Recovered hits use their original timestamps and may merge encounter
+intervals.
 
 ## Damage, targets and HP
 
@@ -76,8 +84,13 @@ private recordings did not reproduce a validated chained hit, so synthetic
 coverage establishes parser behavior, not parity with the game's combat analysis.
 A fresh paired encounter is still needed to measure recovered damage in game.
 
-NPC spawns `40/41/42 36` bind combat entities to template IDs. The public build
-ships no bulk name table; an optional local catalog maps templates to names.
+NPC spawns `40/41/42 36` bind combat entities to template IDs. Boss-only tracking
+requires a complete spawn in the existing target layout and a template marked
+as a boss in the bundled catalog. The boss test runs before party attribution
+and encounter aggregation, so a delayed party mapping keeps the classification
+and target name observed when the hit arrived. Other hits and unmapped target
+IDs do not start fights or contribute damage. Local name overrides affect labels.
+See [the data notice](../NOTICE.md) for boss-classification provenance.
 
 The observed exact-width HP record is `00 8D`, entity varint, `02 01 00`, HP:u32
 little endian, and an opaque four-byte trailer. A positive-to-zero transition

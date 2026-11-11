@@ -135,7 +135,8 @@ public sealed class PartyRosterDecoder
         // departures. Exactly the same member identity as the validated join.
         if(body.Length<63)return;
         int guildBytes=body[48];
-        if(guildBytes>90||body.Length!=63+guildBytes||body[^1]!=1)return;
+        // Active peers in the same five-player dungeon used trailer values 1, 2, and 3.
+        if(guildBytes>90||body.Length!=63+guildBytes||body[^1] is <1 or >3)return;
         if(guildBytes>0)
         {
             try{if(new UTF8Encoding(false,true).GetString(body.Slice(49,guildBytes)).Any(char.IsControl))return;}

@@ -16,16 +16,35 @@ public sealed class CombatScope
     public long ExcludedHits {get;private set;}
     private HashSet<(ulong? Character,int? Server)>? stableChunkMembers;
     private HashSet<(ulong?,int?)> previousMembers=new();
+    private readonly Dictionary<(ulong?,int?),long> memberSince=new();
     public long MembershipVersion {get;private set;}
+    internal long ChunkMembershipVersion {get;private set;}
+    internal long LastMembershipRemovalVersion {get;private set;}
     private HashSet<(ulong?,int?)> CurrentMembers()=>Party.IsAuthoritative?Party.Members.Select(m=>(m.CharacterId,m.ServerId)).ToHashSet():new();
-    public void BeginChunk()=>stableChunkMembers=CurrentMembers();
-    public void EndChunk()=>stableChunkMembers=null;
-    public bool CanAwaitPartyIdentity(CombatHit hit)=>Party.RecoveredAtStartup&&Party.Members.Count==4&&stableChunkMembers is {Count:4};
-    public bool ReleaseAwaitingHit(CombatHit hit)
+    public void BeginChunk()
     {
-        if(!AllowedActors().Contains(hit.ActorId))return false;
-        ExcludedHits=Math.Max(0,ExcludedHits-1);return true;
+        stableChunkMembers=CurrentMembers();
+        ChunkMembershipVersion=MembershipVersion;
     }
+    public void EndChunk()=>stableChunkMembers=null;
+    internal bool CanAwaitPartyIdentity=>stableChunkMembers is {Count:>0};
+    internal bool CanAwaitSelfIdentity=>Party.RecoveredAtStartup&&Party.Members.Count==4&&stableChunkMembers is {Count:4};
+
+    internal Dictionary<int,long> PartyActorMembershipVersions(int? self)
+    {
+        var actors=new Dictionary<int,long>();
+        if(!Party.IsAuthoritative)return actors;
+        foreach(var member in Party.Members)
+        {
+            if(member.Name=="Unknown party member"||Party.Members.Count(peer=>peer.Name==member.Name)!=1||
+                !memberSince.TryGetValue((member.CharacterId,member.ServerId),out long since))continue;
+            var matches=Identity.Names.Where(pair=>pair.Value==member.Name).Take(2).ToArray();
+            if(matches.Length==1&&matches[0].Key!=self)actors.Add(matches[0].Key,since);
+        }
+        return actors;
+    }
+
+    internal void RecordRecoveredHit()=>ExcludedHits=Math.Max(0,ExcludedHits-1);
     public int? LocalPlayerId
     {
         get
@@ -74,7 +93,13 @@ public sealed class CombatScope
             var row=damage is null?new PlayerRow(id,name,0,0,0,0,state):damage with {Actor=name,Status=state};
             rows.Add(row with {ItemLevel=stats?.ItemLevel,CombatPower=stats?.CombatPower,ClassId=row.ClassId??stats?.ClassId??classId});
         }
-        if(!string.IsNullOrWhiteSpace(selfName))Add(self,selfName,self.HasValue?"No hits captured":"Waiting for your identity",Statistics.ForSelf(Identity));
+        // A selected fight may retain the local character's earlier combat ID.
+        // Keep its contribution instead of adding a second, empty live row.
+        bool hasHistoricalSelf=selectedActor is null&&selfName is not null&&
+            damageRows.Count(row=>row.Actor==selfName&&row.Hits>0)==1&&
+            !damageRows.Any(row=>row.ActorId==self);
+        if(!string.IsNullOrWhiteSpace(selfName)&&!hasHistoricalSelf)
+            Add(self,selfName,self.HasValue?"No hits captured":"Waiting for your identity",Statistics.ForSelf(Identity));
         if(Party.IsAuthoritative)foreach(var member in Party.Members)
         {
             if(member.Name==selfName)continue;
@@ -97,7 +122,18 @@ public sealed class CombatScope
         if(Identity.LocalPlayerId is int local&&Identity.Names.TryGetValue(local,out var ownName))ConfirmedSelfName=ownName;
         Party.Observe(record,timestamp);stableChunkMembers?.IntersectWith(CurrentMembers());
         if(partySetSelfId is int inferred&&Identity.Names.TryGetValue(inferred,out var observed)&&observed!=ConfirmedSelfName){partySetSelfId=null;partyInferenceInvalidated=true;partyStatusActors.Clear();}
-        var current=CurrentMembers();if(!current.SetEquals(previousMembers)){MembershipVersion++;previousMembers=current;}
+        var current=CurrentMembers();
+        if(!current.SetEquals(previousMembers))
+        {
+            MembershipVersion++;
+            if(!previousMembers.IsSubsetOf(current))
+            {
+                LastMembershipRemovalVersion=MembershipVersion;
+                foreach(var removed in previousMembers.Except(current))memberSince.Remove(removed);
+            }
+            foreach(var added in current.Except(previousMembers))memberSince.Add(added,MembershipVersion);
+            previousMembers=current;
+        }
         ObservePartyActor(record,timestamp);TryCompletePartyIdentity(timestamp);
     }
     private void ObservePartyActor(ReadOnlySpan<byte> record,long time)
@@ -128,5 +164,5 @@ public sealed class CombatScope
         if(Identity.Names.TryGetValue(candidate,out var other)&&other!=ConfirmedSelfName)return;
         partySetSelfId=candidate;
     }
-    public void Reset(){Identity.Reset();Statistics.Reset();Party.Reset();ExcludedHits=0;stableChunkMembers=null;partySetSelfId=null;partyInferenceInvalidated=false;partyStatusActors.Clear();previousMembers.Clear();MembershipVersion++;}
+    public void Reset(){Identity.Reset();Statistics.Reset();Party.Reset();ExcludedHits=0;stableChunkMembers=null;partySetSelfId=null;partyInferenceInvalidated=false;partyStatusActors.Clear();previousMembers.Clear();memberSince.Clear();MembershipVersion++;LastMembershipRemovalVersion=MembershipVersion;}
 }

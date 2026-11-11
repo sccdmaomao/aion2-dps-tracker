@@ -18,7 +18,7 @@ uploads, or AionFlex installation required.
 2. Install [Npcap](https://npcap.com/#download). If the app reports a missing
    `wpcap.dll`, enable Npcap's WinPcap API-compatible mode in its installer.
 3. Extract the complete release ZIP to a writable folder and open `LocalDpsTracker.exe`.
-4. Enter Aion 2 and click the **play icon** beside the encounter timer. Adapter and game ports are automatic.
+4. Click the **play icon** before entering a dungeon or starting the first pull. You can click it before Aion 2 connects, and the tracker will wait for the game and select the adapter and ports automatically.
 
 Your character name is detected when the server sends a local-character identity
 message during area loading. If you started capture after entering the world,
@@ -40,7 +40,7 @@ the name only; the current combat entity still needs to be mapped from traffic.
   for the current connection and do not establish party membership.
 - Column widths and order are locked; the player column adapts to window width.
 - Target filtering while capture continues for the whole party.
-- Automatic encounter timing and the latest 50 encounters in memory.
+- Boss-only encounter timing and damage. Hits to adds, ordinary enemies and training dummies are excluded.
 - A target is marked **defeated** after a recent positive-to-zero HP transition.
 - Icon buttons beside the encounter timer start/stop capture and copy a chart image to the clipboard.
   The copied image includes the current target, encounter totals and every party row.
@@ -52,7 +52,7 @@ the name only; the current combat entity still needs to be mapped from traffic.
 Damage share is a player's captured damage divided by all captured party damage
 in the selected encounter and target. It is not a percentage of enemy maximum HP.
 
-An encounter starts on the first verified party hit. A confirmed target death
+An encounter starts on the first verified party hit against a recognized boss. A confirmed target death
 immediately freezes that target's timer and DPS; all-target totals freeze when
 every captured target is defeated. Other living targets continue independently.
 Without confirmed death, the fallback is **15 seconds without damage**, including
@@ -88,8 +88,9 @@ offline without extra setup. The catalog is adapted from the MIT-licensed
 [taengu/AION2-DPS-Meter catalog](https://github.com/taengu/AION2-DPS-Meter/blob/2fa3c3e186426ff77db81a6608c87030d529ad7c/src/main/resources/i18n/npcs/en.json);
 source details and its license are in [NOTICE.md](NOTICE.md).
 Keep capture running and teleport once to receive NPC spawn/template mappings.
-Unmapped or uncatalogued targets display `Unknown target <entity ID>`; damage and
-defeat detection still work. Names may differ from your game's language.
+Only templates marked as bosses in the bundled catalog qualify for tracking.
+If the tracker misses a boss's spawn or the catalog lacks its template, the
+fight may not appear. Names may differ from your game's language.
 
 To override or add names, place a UTF-8 `target-names.json` next to `LocalDpsTracker.exe`. It is a
 JSON object mapping **NPC template IDs**, not changing combat entity IDs, to
@@ -148,9 +149,13 @@ publish release assets separately on the GitHub Releases page.
 This is a working prototype tested against local recordings, not an independently
 verified benchmark of exact in-game damage. Protocol updates can break decoding.
 Two-person join/leave layouts and five-person periodic recovery have checks;
-unsupported roster layouts fail closed. Mid-instance capture may miss identity
-or spawn data. Far-away members' damage is unavailable when the server does not
-send it. Pets, relay traffic, and other untested layouts remain provisional.
+unsupported roster layouts fail closed. A dash next to a named teammate means
+their combat ID is unavailable. Start capture before entering an instance, or
+keep capture running while the teammate moves out of view and back to refresh
+their identity. Up to two minutes of buffered hits can fill in once the tracker
+receives their ID, provided their party membership was already confirmed.
+Far-away members' damage is unavailable when the server does not send it. Pets,
+relay traffic, and other untested layouts remain provisional.
 
 See [protocol notes](docs/protocol.md), [contributing](CONTRIBUTING.md), and
 [data/dependency notices](NOTICE.md). Original source is [MIT licensed](LICENSE).

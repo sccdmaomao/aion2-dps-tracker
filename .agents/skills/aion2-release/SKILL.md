@@ -54,6 +54,13 @@ with the expected assets and matching published digest. Confirm the relevant
 `Build and test` run for the exact commit completes successfully. Fix failures
 before reporting success.
 
+After the new GitHub release and its artifacts are verified, run
+'scripts/Clear-OldReleaseArtifacts.ps1 -CurrentVersion VERSION' from the main
+checkout to clean older local packages, builds, previews, and release checkouts.
+Keep the current ZIP, checksum, publish folder, and checkout. Preserve active
+installs, diagnostic recordings, source work, and historical GitHub releases.
+Report any local artifacts skipped because they are in use.
+
 Pages serves only `docs/site/`; README screenshots and private artifacts are not
 automatically included. Its workflow runs for site/workflow changes or manual
 dispatch. When a site update is in scope, verify its deployment and live content,

@@ -12,6 +12,7 @@ public sealed class EncounterTracker
         public int Id {get;}=id;
         public Meter Meter {get;}=meter;
         internal Dictionary<int,PlayerRow> Players {get;}=new();
+        internal Dictionary<int,string> TargetNames {get;}=new();
         public long FirstMs=>Meter.FirstMs!.Value;
         public long LastMs=>Meter.LastMs!.Value;
     }
@@ -40,7 +41,8 @@ public sealed class EncounterTracker
         Encounter encounter;
         if(matches.Length==0)
         {
-            encounter=new(nextId++,new Meter{DisplayName=id=>DisplayName(id),TargetName=id=>TargetName(id)});
+            encounter=new(nextId++,new Meter{DisplayName=id=>DisplayName(id)});
+            encounter.Meter.TargetName=id=>encounter.TargetNames.GetValueOrDefault(id)??TargetName(id);
             encounters.Add(encounter);
         }
         else
@@ -50,13 +52,15 @@ public sealed class EncounterTracker
             {
                 encounter.Meter.Merge(other.Meter);
                 foreach(var (id,row) in other.Players)encounter.Players.TryAdd(id,row);
+                foreach(var (id,name) in other.TargetNames)encounter.TargetNames.TryAdd(id,name);
                 encounters.Remove(other);
             }
         }
+        if(hit.CapturedTargetName is {} targetName)encounter.TargetNames.TryAdd(hit.TargetId,targetName);
         encounter.Meter.Add(hit);
         // Retain metadata when the hit is accepted, before party membership or
         // transient entity mappings change. These rows never grant capture scope.
-        foreach(var row in DescribePlayers(encounter.Meter.View(actorId:hit.ActorId).Players))
+        foreach(var row in DescribePlayers([encounter.Meter.ActorView(hit.ActorId)]))
             if(row.ActorId==hit.ActorId&&row.Hits>0)encounter.Players[hit.ActorId]=row;
         encounters.Sort((a,b)=>a.FirstMs.CompareTo(b.FirstMs));
         while(encounters.Count>HistoryLimit){oldestRetainedMs=encounters[0].LastMs+IdleTimeoutMs;encounters.RemoveAt(0);}
@@ -66,9 +70,13 @@ public sealed class EncounterTracker
     long? DefeatedAt(Encounter encounter,int? targetId=null)
     {
         if(targetId is int selected)return Death(encounter,selected)?.TimestampMs;
-        var ids=encounter.Meter.TargetIds;
-        var deaths=ids.Select(id=>Death(encounter,id)).ToArray();
-        return deaths.Length>0&&deaths.All(d=>d is not null)?deaths.Max(d=>d!.TimestampMs):null;
+        long? lastDeath=null;
+        foreach(int id in encounter.Meter.ObservedTargets)
+        {
+            if(Death(encounter,id) is not {} death)return null;
+            lastDeath=Math.Max(lastDeath??death.TimestampMs,death.TimestampMs);
+        }
+        return lastDeath;
     }
     bool CanJoin(Encounter encounter,CombatHit hit)
     {

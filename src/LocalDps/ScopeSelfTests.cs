@@ -99,6 +99,14 @@ public static class ScopeSelfTests
         Require(automatic.ConfirmedSelfName=="NewCharacter"&&automatic.LocalPlayerId==200,"authoritative local identity overrides stale saved name");
         automatic.Observe(Named(0x33,201,"OtherCharacter"),32);
         Require(automatic.ConfirmedSelfName=="OtherCharacter"&&automatic.LocalPlayerId==201,"automatic name follows character changes");
+        var priorFight=new PlayerRow(199,"OtherCharacter",500,100,3,100,ClassId:9);
+        Require(automatic.DisplayRows([priorFight]).Single()==priorFight,
+            "an earlier combat ID keeps the self contribution without a second empty row");
+        Require(automatic.DisplayRows([]).Single() is {ActorId:201,Hits:0},
+            "a new fight still shows the current local player");
+        var secondContributor=priorFight with {ActorId=198};
+        var ambiguous=automatic.DisplayRows([priorFight,secondContributor]);
+        Require(ambiguous.Count(row=>row.Hits>0)==2,"same-name contributors keep their independently captured damage");
     }
     static void Require(bool condition,string reason){if(!condition)throw new Exception("Scope test failed: "+reason);}
 }

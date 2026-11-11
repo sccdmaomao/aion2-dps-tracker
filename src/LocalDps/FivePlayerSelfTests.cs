@@ -33,6 +33,25 @@ public static class FivePlayerSelfTests
         for(int i=1;i<=5;i++)delayed.Observe(Status(100+i),25);for(int i=1;i<=4;i++)delayed.Observe(Named(100+i,known[i-1].Name),26);
         attribution.Flush(30);Require(accepted.Count==2&&accepted.Sum(h=>h.Damage)==700,"delayed identity releases own and teammate hits while excluding NPC hits");
         delayed.Observe(new byte[]{8,0x13,0x92,0,0},31);attribution.Flush(32);Require(attribution.PendingCount==0,"party changes discard unresolved candidates");
+        var growing=new CombatScope();
+        growing.Party.RestoreKnownNames(known);
+        growing.Observe(Periodic(1),40);
+        var recovered=new List<CombatHit>();
+        var early=new PartyHitAttribution(growing,recovered.Add);
+        growing.BeginChunk();
+        growing.Observe(Periodic(2),41);
+        early.Add(new(41,101,200,11010001,300,false));
+        early.Add(new(41,102,200,11010001,900,false));
+        growing.EndChunk();
+        growing.Observe(Named(101,"PeerA"),42);
+        growing.Observe(Named(102,"PeerB"),42);
+        early.Flush(42);
+        Require(recovered.Count==1&&recovered[0].ActorId==101&&recovered[0].Damage==300,
+            "a late identity recovers the already confirmed peer without counting a new peer's earlier damage");
+        growing.Observe(new byte[]{8,0x13,0x92,0,0},43);
+        early.Flush(43);
+        Require(early.PendingCount==0,"a leave clears candidates even after additive roster growth");
+
         // Five recruiting-room names, independently decoded; no membership proof.
         var body=new List<byte>(new byte[24]);body[0]=1;body[5]=5;body[12]=5;body[18]=0x4e;body[19]=4;body[23]=5;
         for(int i=1;i<=5;i++)

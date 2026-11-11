@@ -1,10 +1,10 @@
-Local DPS Tracker 1.3.0 adds skull badges with observed party deaths per fight.
+Local DPS Tracker 1.4.0 focuses the meter on boss damage and improves dungeon party tracking.
 
-- Full view, compact view and copied charts show a skull and death count beside each party member’s name. Unmapped combat identities show a dash.
-- Counts follow the selected fight, remain the same across target filters, and start fresh for the next encounter. Finished fights retain death-only party members after they leave.
-- Only a recent positive-to-zero HP transition from a verified self/party actor counts. Repeated zero updates do not add deaths; resurrection permits another death. Party changes, entity/name reuse, stale HP, malformed records and out-of-order updates cannot manufacture a count.
-- Counters are based on locally received HP updates. They may miss deaths when updates are not received, for example from out-of-range teammates. Deaths do not change damage capture, DPS or enemy defeat timing.
+- Encounters count damage to recognized bosses. Damage to adds and training targets stays out of the totals. Boss defeat still freezes the encounter timer and DPS.
+- Click Play before entering a dungeon. Capture waits for Aion 2 to connect, and the header shows when the tracker is waiting for combat IDs.
+- Five-player dungeon roster updates now accept the additional variants observed in game. Recent hits from verified teammates can fill in once their combat IDs arrive, even while the roster is filling in.
+- Large fights process hits with fewer repeated scans. Full view, compact view, and copied charts skip the duplicate empty local-player row when a fight retains an earlier combat ID.
 
-Validation: clean Windows build and offline regression tests for duplicate suppression, resurrection, same-chunk updates, nearby-player exclusion, malformed/stale health, party departure, preserved history, identity reuse and capture reset. Synthetic full/minimum/compact and copied-chart renders verified the badges. Three private recordings contained 283 supported HP updates but no player death transitions: in-game death-transition validation remains outstanding.
+Windows self-tests passed. Replaying one five-player dungeon mapped all four teammates and recovered 1,217 boss hits, up from 403. A fresh join-to-dungeon test is still needed for the report where every teammate disappeared. Boss tracking requires the boss’s spawn record and a match in the bundled catalog.
 
-Install the .NET 8 Desktop Runtime (Windows x64) and Npcap separately, extract the entire ZIP, click play, and teleport once while capturing if character identity confirmation is missing. The app remains local-only. Public assets contain blank profiles and no player recordings, learned names or saved window preferences. Official class emblems remain credited to NC Corporation in NOTICE.md.
+Install the .NET 8 Desktop Runtime for Windows x64 and Npcap separately. Extract the entire ZIP and start capture before entering the instance. If your character name is unconfirmed, keep capture running and teleport once.

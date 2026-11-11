@@ -22,7 +22,8 @@ https://github.com/taengu/AION2-DPS-Meter/blob/2fa3c3e186426ff77db81a6608c87030d
 
 Source SHA-256: 0c5a4d67058ef39105f71e0979b39af57c305f64e929a35c42dc955fdfe61b3d.
 Conversion retains all 6,084 template IDs and their name fields, sorts by numeric
-ID, and omits the isBoss field. No private AionFlex name table is distributed.
+ID. The companion boss-template-ids.json contains the 967 sorted template IDs
+with isBoss set to true in the same source. No private AionFlex name table is distributed.
 The upstream license is reproduced below. Optional local target-names.json
 entries can override or extend this catalog; see the README.
 

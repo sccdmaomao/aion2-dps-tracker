@@ -12,11 +12,11 @@ public static class PartyStartupSelfTests
             do{byte b=(byte)(length&127);length>>=7;prefix.Add((byte)(b|(length>0?128:0)));}while(length>0);
             return prefix.Concat(new[]{op,family}).Concat(body).ToArray();
         }
-        byte[] Periodic(ulong id=410001,string guild="TestGuild")
+        byte[] Periodic(ulong id=410001,string guild="TestGuild",byte trailer=1)
         {
             var guildName=Encoding.UTF8.GetBytes(guild);
             var b=new byte[63+guildName.Length];for(int i=0;i<6;i++)b[i]=(byte)(id>>(i*8));
-            BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(6),1102);b[8]=9;b[36]=45;b[48]=(byte)guildName.Length;guildName.CopyTo(b,49);b[^1]=1;
+            BinaryPrimitives.WriteUInt16LittleEndian(b.AsSpan(6),1102);b[8]=9;b[36]=45;b[48]=(byte)guildName.Length;guildName.CopyTo(b,49);b[^1]=trailer;
             return Frame(0x1c,0x92,b);
         }
         byte[] Directory(int server=1102,int job=9)
@@ -31,7 +31,7 @@ public static class PartyStartupSelfTests
         Require(!party.IsAuthoritative&&party.Members.Count==0,"social directory cannot establish membership");
         party.Observe(Periodic(),2);
         Require(party.RecoveredAtStartup&&party.Members.Single() is {Name:"隊友",EntityId:0,CharacterId:410001},"periodic party update recovers existing peer and exact directory name");
-        party.Observe(new byte[]{8,0x13,0x92,0,0},3);party.Observe(Periodic(),4);
+        party.Observe(new byte[]{8,0x13,0x92,0,0},3);party.Observe(Periodic(trailer:3),4);
         Require(party.Members.Count==0&&!party.RecoveredAtStartup,"delayed periodic packet cannot restore a departed party");
         var known=party.KnownNames;
         party.Reset();Require(!party.IsAuthoritative&&party.Members.Count==0,"remembered names cannot preserve membership across reset");
@@ -49,8 +49,12 @@ public static class PartyStartupSelfTests
         Require(party.Members.Single().Name=="Unknown party member","name resolution requires exact class");
         party.Reset();var malformed=Periodic();malformed[^1]=0;party.Observe(malformed,11);
         Require(!party.IsAuthoritative,"unrecognized periodic layout cannot establish membership");
-        party.Observe(Periodic(),12);party.Observe(Periodic(410002),13);party.Observe(Periodic(410003),13);party.Observe(Periodic(410004),13);
-        Require(party.IsAuthoritative&&party.Members.Count==4,"periodic recovery retains all four teammates in a five-player party");
+        party.Observe(Periodic(410099,trailer:4),11);
+        Require(!party.IsAuthoritative,"unobserved trailer values cannot establish membership");
+        party.Observe(Periodic(),12);party.Observe(Periodic(410002,trailer:2),13);
+        party.Observe(Periodic(410003,trailer:3),13);party.Observe(Periodic(410004),13);
+        Require(party.IsAuthoritative&&party.Members.Select(member=>member.CharacterId).SequenceEqual(new ulong?[]{410001,410002,410003,410004}),
+            "mixed supported trailer values recover all four teammates in a five-player party");
         party.Observe(Periodic(410005),13);
         Require(!party.IsAuthoritative&&party.Members.Count==0,"more than four peers exceeds the five-player party limit");
         party.Reset();party.Observe(Frame(0x0d,0x92,new byte[]{3,5}),14);party.Observe(Periodic(),15);
