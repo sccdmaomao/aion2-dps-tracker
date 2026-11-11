@@ -36,7 +36,7 @@ public partial class MainWindow : Window
     bool autoCapturing,noPacketsWarned,connectionWaiting;
     bool waitingForGame;
     DateTimeOffset captureStarted,lastConnectionCheck;
-    string activeConnection="";
+    string activeAdapter="";
     string statusMessage="Start capture before entering a dungeon to pick up party identities.";
     int shareFeedbackVersion;
     void UpdateCaptureButton(bool active)
@@ -179,7 +179,7 @@ public partial class MainWindow : Window
         catch(Exception ex){nameCacheStatus=" · name cache: "+ex.Message;}
     }
     void AcceptChunk(byte[] data,DateTimeOffset time,string flow){lock(gate){encounters.AdvanceTo(time.ToUnixTimeMilliseconds());scope.BeginChunk();try{if(GameFlowDirection.IsServerToClient(flow,serverPorts))identityRecords.Feed(flow,data,time.ToUnixTimeMilliseconds());decoder.Feed(flow,data,time.ToUnixTimeMilliseconds());attribution.Flush(time.ToUnixTimeMilliseconds());chunks++;}finally{scope.EndChunk();}}}
-    void StopAutomatic(){autoCapturing=false;capture.Stop();lock(gate)encounters.Stop();UpdateCaptureButton(false);activeConnection="";}
+    void StopAutomatic(){autoCapturing=false;capture.Stop();lock(gate)encounters.Stop();UpdateCaptureButton(false);activeAdapter="";}
     void DetectAndCapture()
     {
         var connections=GameConnectionDetection.FindAvailable();
@@ -193,10 +193,15 @@ public partial class MainWindow : Window
         var devices=PacketCaptureService.ListDevices();
         var device=AdapterSelection.ForGame(devices,connections)??throw new InvalidOperationException("No active capture adapter was found. Check your network connection and Npcap installation.");
         int[] ports=connections.Select(c=>c.RemotePort).Distinct().Order().ToArray();
-        string signature=device.Name+":"+string.Join(",",ports);
-        if(signature==activeConnection&&capture.IsRunning){connectionWaiting=false;return;}
+        // The existing BPF filter still covers the game when an auxiliary
+        // connection closes. Keep its capture, identities and encounter history.
+        if(capture.IsRunning&&activeAdapter==device.Name&&ports.All(serverPorts.Contains))
+        {
+            connectionWaiting=false;
+            return;
+        }
         capture.Stop();lock(gate){decoder.Reset();identityRecords.Reset();scope.Reset();targetIdentity.Reset();targetHealth.Reset();partyDeaths.Reset();encounters.Reset();encounters.Start();attribution.Reset();serverPorts.Clear();serverPorts.UnionWith(ports);}
-        capture.StartGamePorts(device.Name,ports);activeConnection=signature;captureStarted=DateTimeOffset.UtcNow;noPacketsWarned=false;connectionWaiting=false;
+        capture.StartGamePorts(device.Name,ports);activeAdapter=device.Name;captureStarted=DateTimeOffset.UtcNow;noPacketsWarned=false;connectionWaiting=false;
         statusMessage="Capturing. Waiting for a boss fight…";
     }
     void CheckAutomatic()

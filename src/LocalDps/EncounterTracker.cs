@@ -34,6 +34,11 @@ public sealed class EncounterTracker
     {
         if(hit.Damage<=0||(oldestRetainedMs.HasValue&&hit.TimestampMs<oldestRetainedMs.Value))return;
         AdvanceTo(hit.TimestampMs);
+        // Damage after a confirmed death is not evidence of a new life.
+        // Keep the finished result until positive HP establishes a revival.
+        if(encounters.Any(encounter=>Death(encounter,hit.TargetId) is {} death&&
+            hit.TimestampMs>death.TimestampMs+250&&
+            (death.AliveAgainMs is null||hit.TimestampMs<death.AliveAgainMs)))return;
         var matches=encounters.Where(e=>hit.TimestampMs>e.FirstMs-IdleTimeoutMs&&hit.TimestampMs<e.LastMs+IdleTimeoutMs&&CanJoin(e,hit)).ToArray();
         // Identity recovery may release old damage after the next fight starts.
         // A confirmed end is a boundary, not an idle gap that a late hit bridges.

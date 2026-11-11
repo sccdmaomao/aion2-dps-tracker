@@ -32,6 +32,9 @@ public static class EncounterDefeatSelfTests
         Require(tracker.State(multi)=="In combat"&&tracker.Seconds(multi)==3,"one defeated target does not stop other targets");
         Require(tracker.State(multi,900)=="Defeated"&&tracker.View(multi,900).Seconds==2&&tracker.View(multi,900).Players.Single().Dps==50,"selected target freezes independently");
         Require(tracker.State(multi,901)=="In combat"&&tracker.View(multi,901).Seconds==3,"living target keeps running");
+        Hit(4500,900,99999);
+        Require(tracker.Encounters.Count==1&&tracker.View(multi,900).Damage==100&&tracker.View(multi,901).Damage==100,
+            "a dead boss's late damage cannot contaminate a fight with another living boss");
         Hp(901,0,6000);tracker.AdvanceTo(6000);
         Require(tracker.State(multi)=="Defeated"&&tracker.Seconds(multi)==5,"all-target fight freezes when the last captured target dies");
         tracker.AdvanceTo(30000);
@@ -44,7 +47,14 @@ public static class EncounterDefeatSelfTests
         Require(tracker.Encounters.Count==2&&tracker.State(oldLife)=="Defeated"&&tracker.State(tracker.Latest!)=="In combat","respawn within skew window starts a new fight");
         health.Reset();tracker.Reset();tracker.Start();
         Hp(900,1000,0);Hit(0);Hp(900,0,1000);tracker.AdvanceTo(1000);Hit(1300);
-        Require(tracker.Encounters.Count==2,"hit after death skew cannot reopen finished fight");
+        var finished=tracker.Latest!;
+        var completedView=tracker.View(finished);
+        Hit(4000);Hit(20000);
+        Require(tracker.Encounters.Count==1&&tracker.Latest==finished&&tracker.View(finished).Damage==completedView.Damage&&tracker.View(finished).Seconds==completedView.Seconds&&tracker.View(finished).Players.SequenceEqual(completedView.Players),
+            "post-death ticks cannot create a small new fight or replace the finished totals");
+        Hp(900,1000,21000);Hit(22000);
+        Require(tracker.Encounters.Count==2&&tracker.View(finished).Damage==completedView.Damage,
+            "positive HP starts a real new life while preserving the previous fight");
 
         // Delayed identity recovery is still assigned using event timestamps.
         health.Reset();tracker.Reset();tracker.Start();

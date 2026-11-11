@@ -103,7 +103,9 @@ at the zero-HP timestamp. All-target totals freeze when every captured target
 in the fight has a confirmed death; other living targets continue independently.
 Durations retain the shared encounter start and a one-second DPS denominator
 floor. The existing 250 ms final-hit skew can add killing damage without extending
-the frozen timer; a confirmed new life starts a new fight. A new target after a
+the frozen timer. Later damage to the defeated life is discarded, including
+DoT ticks received while another boss is still alive; positive HP is required
+before the same combat entity can start a new life. A new target after a
 fully defeated fight also starts a fresh fight inside the idle window. When no
 death is confirmed, the 15-second idle rule remains the fallback. Packet capture
 stays active for subsequent fights. DPS is rounded to whole numbers for display
