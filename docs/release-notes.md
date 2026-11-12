@@ -1,6 +1,7 @@
-Local DPS Tracker 1.4.1 preserves finished boss results.
+Boss Meter 2.0.0 introduces the new name and logo for the Aion 2 DPS tracker.
 
-- Delayed damage after a confirmed boss defeat can no longer create a small second fight and replace the finished result. Final hits within the existing 250 ms window still count. Positive HP allows the same boss entity to start a new fight.
-- Closing an auxiliary game connection preserves encounter history when the existing capture filter still covers the game.
+- The Windows app opens as Boss Meter. Extract the ZIP and run BossMeter.exe.
+- The shield-and-chart icon appears in Windows and on the project website.
+- Boss Meter is free and open source. Combat data stays on your PC, with no account, telemetry, or automatic uploads.
 
-Windows self-tests cover delayed damage, multiple bosses, and a confirmed new life. A live boss kill on this build and the separate new-party tracking issue still need verification.
+Install the Windows x64 .NET 8 Desktop Runtime and Npcap separately. Start capture before entering the dungeon to pick up boss and party identities.

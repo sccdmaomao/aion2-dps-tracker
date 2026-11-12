@@ -1,6 +1,6 @@
 ---
 name: aion2-release
-description: Prepare or publish a Local DPS Tracker Windows release, validate its clean ZIP and checksum, and verify GitHub CI and related Pages updates.
+description: Prepare or publish a Boss Meter Windows release, validate its clean ZIP and checksum, and verify GitHub CI and related Pages updates.
 ---
 
 # Prepare or publish a release
@@ -19,7 +19,7 @@ The project is framework-dependent Windows x64, .NET 8 WPF. Npcap and the .NET
 Desktop Runtime are installed separately, not redistributed in the package.
 
 Run `./scripts/Build.ps1` on Windows x64 with the .NET 8 SDK. It builds, runs the
-offline tests, publishes and creates `artifacts/LocalDpsTracker-VERSION-windows-x64.zip`
+offline tests, publishes and creates `artifacts/BossMeter-VERSION-windows-x64.zip`
 plus `.sha256`. Offline tests need neither a live game nor Npcap.
 Use a fresh checkout/output location when a running app locks publish files;
 preserve the user's active capture.

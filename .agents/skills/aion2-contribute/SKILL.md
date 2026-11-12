@@ -3,7 +3,7 @@ name: aion2-contribute
 description: Develop and validate general changes in aion2-dps-tracker using its Windows build, source layout and local-data boundaries. Use the dedicated protocol, UI or release skill for those focused tasks.
 ---
 
-# Contribute to Local DPS Tracker
+# Contribute to Boss Meter
 
 Read [CONTRIBUTING.md](../../../CONTRIBUTING.md) and the relevant sections of
 [README.md](../../../README.md). Work from the repository root.
@@ -31,7 +31,7 @@ For a focused local check on Windows x64 with the .NET 8 SDK:
 
 ```powershell
 dotnet build src/LocalDps/LocalDps.csproj -c Release
-$test = Start-Process ./src/LocalDps/bin/Release/net8.0-windows/LocalDpsTracker.exe `
+$test = Start-Process ./src/LocalDps/bin/Release/net8.0-windows/BossMeter.exe `
   -ArgumentList '--self-test' -Wait -PassThru -WindowStyle Hidden
 if ($test.ExitCode -ne 0) { throw 'Offline self-tests failed' }
 ```

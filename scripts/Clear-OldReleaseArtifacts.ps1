@@ -9,8 +9,12 @@ $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).ProviderPath
 $current = [version]$CurrentVersion
 $artifacts = Join-Path $repo 'artifacts'
-$zip = Join-Path $artifacts "LocalDpsTracker-$CurrentVersion-windows-x64.zip"
-$exe = Join-Path $artifacts "publish-$CurrentVersion/LocalDpsTracker.exe"
+$appName = 'BossMeter'
+if (-not (Test-Path -LiteralPath (Join-Path $artifacts "publish-$CurrentVersion/$appName.exe") -PathType Leaf)) {
+    $appName = 'LocalDpsTracker'
+}
+$zip = Join-Path $artifacts "$appName-$CurrentVersion-windows-x64.zip"
+$exe = Join-Path $artifacts "publish-$CurrentVersion/$appName.exe"
 foreach ($required in @($zip, "$zip.sha256", $exe)) {
     if (-not (Test-Path -LiteralPath $required -PathType Leaf)) { throw "Missing current release file: $required" }
 }
@@ -19,7 +23,7 @@ if ((Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash -ne $expected) {
     throw 'Current ZIP failed checksum verification.'
 }
 
-$running = @(Get-Process -Name LocalDpsTracker, LocalDps -ErrorAction SilentlyContinue |
+$running = @(Get-Process -Name BossMeter, LocalDpsTracker, LocalDps -ErrorAction SilentlyContinue |
     Where-Object Path | Select-Object -ExpandProperty Path)
 foreach ($folder in @('artifacts', 'distributions', 'work')) {
     $root = Join-Path $repo $folder
@@ -30,14 +34,14 @@ foreach ($folder in @('artifacts', 'distributions', 'work')) {
     foreach ($item in Get-ChildItem -LiteralPath $root -Force) {
         $isOld = switch ($folder) {
             'artifacts' {
-                if ($item.Name -match '^(?:publish-|LocalDps(?:Tracker)?-)(\d+\.\d+\.\d+)(?:-windows-x64\.zip(?:\.sha256)?)?$') {
+                if ($item.Name -match '^(?:publish-|BossMeter-|LocalDps(?:Tracker)?-)(\d+\.\d+\.\d+)(?:-windows-x64\.zip(?:\.sha256)?)?$') {
                     [version]$Matches[1] -lt $current
                 } else {
                     $item.PSIsContainer -and $item.Name -match '^(?:[a-z-]+-preview|preview-[a-z-]+|staging-[0-9a-f]{32})$'
                 }
             }
             'distributions' {
-                $item.Name -match '^LocalDps(?:Tracker)?-(\d+\.\d+\.\d+)-friends(?:\.zip)?$' -and [version]$Matches[1] -lt $current
+                $item.Name -match '^(?:BossMeter|LocalDps(?:Tracker)?)-(\d+\.\d+\.\d+)-friends(?:\.zip)?$' -and [version]$Matches[1] -lt $current
             }
             'work' {
                 $item.PSIsContainer -and $item.Name -match '^release-(\d+\.\d+\.\d+)$' -and [version]$Matches[1] -lt $current

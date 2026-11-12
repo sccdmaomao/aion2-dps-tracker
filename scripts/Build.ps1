@@ -14,7 +14,7 @@ $publish = Join-Path $artifacts ('publish-' + $version)
 
 & dotnet build $project -c Release
 if ($LASTEXITCODE -ne 0) { throw 'Build failed.' }
-$testExe = Join-Path $repoRoot 'src/LocalDps/bin/Release/net8.0-windows/LocalDpsTracker.exe'
+$testExe = Join-Path $repoRoot 'src/LocalDps/bin/Release/net8.0-windows/BossMeter.exe'
 $test = Start-Process -FilePath $testExe -ArgumentList '--self-test' -Wait -PassThru -WindowStyle Hidden
 if ($test.ExitCode -ne 0) {
     $failure = Join-Path (Split-Path $testExe) 'self-test-failure.txt'
@@ -26,11 +26,11 @@ if ($LASTEXITCODE -ne 0) { throw 'Publish failed.' }
 
 # A fresh staging directory and explicit allowlist prevent private files from
 # previous app runs or local development from entering a public release.
-$packageName = 'LocalDpsTracker-' + $version + '-windows-x64'
+$packageName = 'BossMeter-' + $version + '-windows-x64'
 $stage = Join-Path $artifacts ('staging-' + [Guid]::NewGuid().ToString('N'))
 $package = Join-Path $stage $packageName
 [IO.Directory]::CreateDirectory($package) | Out-Null
-foreach ($name in @('LocalDpsTracker.exe','LocalDpsTracker.dll','LocalDpsTracker.deps.json','LocalDpsTracker.runtimeconfig.json')) {
+foreach ($name in @('BossMeter.exe','BossMeter.dll','BossMeter.deps.json','BossMeter.runtimeconfig.json')) {
     Copy-Item -LiteralPath (Join-Path $publish $name) -Destination (Join-Path $package $name)
 }
 [IO.File]::WriteAllText((Join-Path $package 'track-people.json'), '{"selfName":""}')
@@ -39,13 +39,14 @@ foreach ($name in @('LICENSE','NOTICE.md')) {
     Copy-Item -LiteralPath (Join-Path $repoRoot $name) -Destination (Join-Path $package $name)
 }
 @'
-Local DPS Tracker for Aion 2
+Boss Meter for Aion 2
+Open source. Free to use. Your data stays on your PC.
 
 Install Microsoft .NET 8 Desktop Runtime (Windows x64) and Npcap separately:
 https://dotnet.microsoft.com/en-us/download/dotnet/8.0
 https://npcap.com/#download
 
-Extract the complete ZIP into a writable folder. Open LocalDpsTracker.exe and click the play
+Extract the complete ZIP into a writable folder. Open BossMeter.exe and click the play
 icon before entering a dungeon or starting the first pull. The tracker waits for Aion 2 to connect
 and selects the adapter and ports automatically. Character identity arrives during area loading:
 if your name is missing, keep capture running and

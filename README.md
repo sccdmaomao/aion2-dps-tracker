@@ -1,12 +1,14 @@
-# Local DPS Tracker for Aion 2
+# Boss Meter
 
 [![Build and test](https://github.com/sccdmaomao/aion2-dps-tracker/actions/workflows/build.yml/badge.svg)](https://github.com/sccdmaomao/aion2-dps-tracker/actions/workflows/build.yml)
 
 **[Project website](https://sccdmaomao.github.io/aion2-dps-tracker/)** · [Downloads](https://github.com/sccdmaomao/aion2-dps-tracker/releases/latest)
 
-A local-only Windows DPS meter for Aion 2. Passive packet capture, automatic
-game connection detection, and party filtering. No account, telemetry, automatic
-uploads, or AionFlex installation required.
+**A free, open-source DPS meter for Aion 2.**
+
+Your combat data stays on your PC. No account, telemetry, or automatic uploads.
+Boss Meter tracks your party’s boss damage on Windows. The original source code
+is available under the [MIT license](LICENSE).
 
 **[Download the latest Windows release](https://github.com/sccdmaomao/aion2-dps-tracker/releases/latest)**
 
@@ -17,7 +19,7 @@ uploads, or AionFlex installation required.
 1. Install [Microsoft .NET 8 Desktop Runtime for Windows x64](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
 2. Install [Npcap](https://npcap.com/#download). If the app reports a missing
    `wpcap.dll`, enable Npcap's WinPcap API-compatible mode in its installer.
-3. Extract the complete release ZIP to a writable folder and open `LocalDpsTracker.exe`.
+3. Extract the complete release ZIP to a writable folder and open `BossMeter.exe`.
 4. Click the **play icon** before entering a dungeon or starting the first pull. You can click it before Aion 2 connects, and the tracker will wait for the game and select the adapter and ports automatically.
 
 Your character name is detected when the server sends a local-character identity
@@ -92,7 +94,7 @@ Only templates marked as bosses in the bundled catalog qualify for tracking.
 If the tracker misses a boss's spawn or the catalog lacks its template, the
 fight may not appear. Names may differ from your game's language.
 
-To override or add names, place a UTF-8 `target-names.json` next to `LocalDpsTracker.exe`. It is a
+To override or add names, place a UTF-8 `target-names.json` next to `BossMeter.exe`. It is a
 JSON object mapping **NPC template IDs**, not changing combat entity IDs, to
 display names. See [the example](examples/target-names.example.json); its IDs and
 names are illustrative, not a real game catalog. Use only data you have permission
@@ -133,7 +135,7 @@ For a build without packaging:
 
 ```powershell
 dotnet build src/LocalDps/LocalDps.csproj -c Release
-$test = Start-Process ./src/LocalDps/bin/Release/net8.0-windows/LocalDpsTracker.exe `
+$test = Start-Process ./src/LocalDps/bin/Release/net8.0-windows/BossMeter.exe `
   -ArgumentList '--self-test' -Wait -PassThru
 if ($test.ExitCode -ne 0) { throw 'Self-tests failed' }
 ```

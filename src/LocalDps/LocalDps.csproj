@@ -6,15 +6,17 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <AssemblyName>LocalDpsTracker</AssemblyName>
+    <AssemblyName>BossMeter</AssemblyName>
+    <ApplicationIcon>Assets/BossMeter.ico</ApplicationIcon>
     <RootNamespace>LocalDps</RootNamespace>
-    <Title>Local DPS Tracker</Title>
-    <Product>Local DPS Tracker</Product>
+    <Title>Boss Meter</Title>
+    <Product>Boss Meter</Product>
     <Description>Local-only party damage and encounter tracking for Aion 2.</Description>
-    <Version>1.4.1</Version>
+    <Version>2.0.0</Version>
     <DebugType Condition="'$(Configuration)' == 'Release'">none</DebugType>
     <DebugSymbols Condition="'$(Configuration)' == 'Release'">false</DebugSymbols>
   </PropertyGroup>
+  <ItemGroup><Resource Include="Assets/BossMeter.ico" /></ItemGroup>
   <ItemGroup><EmbeddedResource Include="Data/skill-rules.json" /></ItemGroup>
   <ItemGroup><EmbeddedResource Include="Data/target-names.json" /></ItemGroup>
   <ItemGroup><EmbeddedResource Include="Data/boss-template-ids.json" /></ItemGroup>
